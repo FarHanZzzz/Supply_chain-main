@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature 7: Analytics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* Performance Grid */
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .performance-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .performance-card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #218838;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Badges */
+        .reliability-badge,
+        .performance-badge,
+        .efficiency-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .high-reliability,
+        .high-performance,
+        .high-efficiency {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .medium-reliability,
+        .medium-performance,
+        .medium-efficiency {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .low-reliability,
+        .low-performance,
+        .low-efficiency {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Report Generation */
+        .report-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+
+        #reportResults {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            margin-top: 20px;
+        }
+
+        .report-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Loading indicator */
+        #loadingIndicator {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification-success {
+            background: #28a745;
+        }
+
+        .notification-error {
+            background: #dc3545;
+        }
+
+        .notification-info {
+            background: #17a2b8;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .performance-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-navigation {
+                flex-wrap: wrap;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .checkbox-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Supply Chain Analytics</h1>
+            <p>Analyze data related to transportation and supply chain activities to assess key performance indicators (KPIs) such as delivery times, transportation costs, and carrier reliability.</p>
+        </div>
+
+        <div class="content">
+            <div id="loadingIndicator">Loading analytics data...</div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" onclick="showTab('overview')">📊 Overview</button>
+                <button class="tab-btn" onclick="showTab('performance')">🎯 Performance</button>
+                <button class="tab-btn" onclick="showTab('costs')">💰 Costs</button>
+                <button class="tab-btn" onclick="showTab('trends')">📈 Trends</button>
+                <button class="tab-btn" onclick="showTab('reports')">📋 Reports</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overviewTab" class="tab-content">
+                <div class="controls">
+                    <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh Data</button>
+                    <button class="btn btn-primary" onclick="exportData()">📊 Export Data</button>
+                </div>
+
+                <!-- System Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalShipments">0</div>
+                        <div class="stat-label">Total Shipments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalProducts">0</div>
+                        <div class="stat-label">Total Products</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTransports">0</div>
+                        <div class="stat-label">Total Transports</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalDrivers">0</div>
+                        <div class="stat-label">Total Drivers</div>
+                    </div>
+                </div>
+
+                <!-- Key Performance Indicators -->
+                <div class="performance-grid">
+                    <div class="performance-card">
+                        <h3>Delivery Performance</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number" id="onTimeDeliveries">0</div>
+                                <div class="stat-label">On-Time Deliveries</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="onTimePercentage">0%</div>
+                                <div class="stat-label">On-Time Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="performance-card">
+                        <h3>Transportation Metrics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number" id="avgDeliveryTime">0h</div>
+                                <div class="stat-label">Avg Delivery Time</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="totalCosts">$0</div>
+                                <div class="stat-label">Total Costs</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="performance-card">
+                        <h3>Cost Analysis</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number" id="avgCostPerShipment">$0</div>
+                                <div class="stat-label">Avg Cost/Shipment</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="recentShipments">0</div>
+                                <div class="stat-label">Recent Shipments</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Tab -->
+            <div id="performanceTab" class="tab-content">
+                <!-- Carrier Reliability -->
+                <div class="performance-card">
+                    <h3>Carrier Reliability</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Driver ID</th>
+                                    <th>Driver Name</th>
+                                    <th>Vehicle Type</th>
+                                    <th>Total Shipments</th>
+                                    <th>Completed</th>
+                                    <th>Success Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="carrierTableBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Product Performance -->
+                <div class="performance-card">
+                    <h3>Product Performance</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Total Shipments</th>
+                                    <th>Delivered</th>
+                                    <th>Success Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productTableBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Route Efficiency -->
+                <div class="performance-card">
+                    <h3>Route Efficiency</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Destination</th>
+                                    <th>Shipments</th>
+                                    <th>Avg Delivery Time</th>
+                                    <th>Efficiency</th>
+                                </tr>
+                            </thead>
+                            <tbody id="routeTableBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Costs Tab -->
+            <div id="costsTab" class="tab-content">
+                <div class="performance-card">
+                    <h3>Transportation Cost Analysis</h3>
+                    
+                    <!-- Cost Summary -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalEstimatedCost">$0</div>
+                            <div class="stat-label">Total Estimated Cost</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="avgCostShipment">$0</div>
+                            <div class="stat-label">Average Cost per Shipment</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalShipmentsCount">0</div>
+                            <div class="stat-label">Total Shipments</div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Breakdown -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vehicle Type</th>
+                                    <th>Shipments</th>
+                                    <th>Cost per Shipment</th>
+                                    <th>Total Cost</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="costTableBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends Tab -->
+            <div id="trendsTab" class="tab-content">
+                <!-- Daily Trends -->
+                <div class="performance-card">
+                    <h3>Daily Shipment Trends (Last 10 Days)</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Shipments</th>
+                                    <th>Delivered</th>
+                                    <th>Delivery Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyTrendsBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Monthly Trends -->
+                <div class="performance-card">
+                    <h3>Monthly Trends</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Shipments</th>
+                                    <th>Delivered</th>
+                                    <th>Delivery Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlyTrendsBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Condition Monitoring Trends -->
+                <div class="performance-card">
+                    <h3>Condition Monitoring Trends (Last 10 Days)</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Avg Temperature</th>
+                                    <th>Avg Humidity</th>
+                                    <th>Readings</th>
+                                    <th>Alerts</th>
+                                    <th>Alert Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="conditionTrendsBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Document Analytics -->
+                <div class="performance-grid">
+                    <div class="performance-card">
+                        <h3>Document Status Distribution</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentStatusBody">
+                                    <!-- Data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="performance-card">
+                        <h3>Document Type Distribution</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Document Type</th>
+                                        <th>Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentTypeBody">
+                                    <!-- Data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reportsTab" class="tab-content">
+                <div class="performance-card">
+                    <h3>Custom Report Generation</h3>
+                    
+                    <div class="report-form">
+                        <div class="form-group">
+                            <label for="reportStartDate">Start Date:</label>
+                            <input type="date" id="reportStartDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reportEndDate">End Date:</label>
+                            <input type="date" id="reportEndDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Include Metrics:</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="includeDelivery" checked>
+                                    <label for="includeDelivery">Delivery Performance</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="includeCosts" checked>
+                                    <label for="includeCosts">Transportation Costs</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="includeTrends" checked>
+                                    <label for="includeTrends">Shipment Trends</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="generateCustomReport()">Generate Report</button>
+                    </div>
+                    
+                    <div id="reportResults">
+                        <!-- Report results will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
