@@ -1,230 +1,455 @@
-// Feature 6: Delivery Document Management JavaScript
+// Initialize variables
+let currentDocument = null;
+const documentModal = new bootstrap.Modal(document.getElementById('documentModal'));
+const viewModal = new bootstrap.Modal(document.getElementById('viewModal'));
 
-let currentEditingItem = null;
-let allDeliveryDocuments = [];
-
-// Load all data when page loads
+// DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
-    loadDeliveryDocuments();
-    loadStats();
+    loadDocumentStats();
+    loadDocuments();
+    loadShipments();
+    
+    // Event Listeners
+    document.getElementById('addDocumentBtn').addEventListener('click', openDocumentModal);
+    document.getElementById('saveDocumentBtn').addEventListener('click', saveDocument);
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('searchBtn').addEventListener('click', searchDocuments);
+    document.getElementById('statusFilter').addEventListener('change', filterDocuments);
+    document.getElementById('typeFilter').addEventListener('change', filterDocuments);
+    document.getElementById('downloadBtn').addEventListener('click', downloadDocument);
 });
 
-// Load delivery documents data
-async function loadDeliveryDocuments() {
-    try {
-        const response = await fetch('api.php?action=delivery_documents');
-        const documents = await response.json();
-        allDeliveryDocuments = documents;
-        displayDeliveryDocuments(documents);
-    } catch (error) {
-        console.error('Error loading delivery documents:', error);
-        alert('Failed to load delivery documents data');
-    }
-}
-
-// Load statistics
-async function loadStats() {
+// Load document statistics
+async function loadDocumentStats() {
     try {
         const response = await fetch('api.php?action=stats');
         const stats = await response.json();
-        displayStats(stats);
+        displayDocumentStats(stats);
     } catch (error) {
-        console.error('Error loading stats:', error);
+        console.error('Error loading document stats:', error);
     }
 }
 
-// Display statistics
-function displayStats(stats) {
-    document.getElementById('totalDeliveries').textContent = stats.total_deliveries || 0;
-    document.getElementById('totalBatchesShipped').textContent = stats.total_batches_shipped || 0;
-    document.getElementById('totalItemsShipped').textContent = stats.total_items_shipped || 0;
+// Display document statistics
+function displayDocumentStats(stats) {
+    const statsContainer = document.getElementById('statsContainer');
+    
+    const statsData = [
+        { 
+            title: 'Total Documents', 
+            value: stats.total_documents || 0,
+            icon: 'fas fa-file-alt',
+            class: 'total'
+        },
+        { 
+            title: 'Approved', 
+            value: stats.by_status?.Approved || 0,
+            icon: 'fas fa-check-circle',
+            class: 'approved'
+        },
+        { 
+            title: 'Pending', 
+            value: stats.by_status?.Pending || 0,
+            icon: 'fas fa-clock',
+            class: 'pending'
+        },
+        { 
+            title: 'Rejected', 
+            value: stats.by_status?.Rejected || 0,
+            icon: 'fas fa-times-circle',
+            class: 'rejected'
+        }
+    ];
+    
+    let statsHTML = '';
+    statsData.forEach(stat => {
+        statsHTML += `
+            <div class="col-md-3">
+                <div class="stat-card ${stat.class} text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">${stat.value}</h5>
+                            <small>${stat.title}</small>
+                        </div>
+                        <i class="${stat.icon} fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    statsContainer.innerHTML = statsHTML;
 }
 
-// Display delivery documents in table
-function displayDeliveryDocuments(documents) {
-    const tableBody = document.getElementById('deliveriesTableBody');
+// Load all documents
+async function loadDocuments() {
+    try {
+        const response = await fetch('api.php?action=documents');
+        const documents = await response.json();
+        displayDocuments(documents);
+    } catch (error) {
+        console.error('Error loading documents:', error);
+    }
+}
+
+// Display documents in table
+function displayDocuments(documents) {
+    const tableBody = document.getElementById('documentsTableBody');
     tableBody.innerHTML = '';
     
+    if (!documents || documents.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5">
+                    <i class="fas fa-file-excel fa-3x text-muted mb-3"></i>
+                    <h5>No Documents Found</h5>
+                    <p>Add your first shipping document to get started</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
     documents.forEach(doc => {
-        const row = tableBody.insertRow();
-        
-        // Format date and time
-        const deliveryDateTime = `${doc.delivery_date || ''} ${doc.delivery_time || ''}`;
-        
-        // Format order details
-        const orderDetails = doc.order_id ? 
-            `Order #${doc.order_id}<br><small class="order-info">${doc.order_location || ''}</small>` : 
-            'N/A';
-        
-        // Format batch info
-        const batchInfo = doc.packaged_product_batch_number ? 
-            `<span class="batch-info">Batch: ${doc.packaged_product_batch_number}</span>` : 
-            'N/A';
-        
-        // Format warehouse info
-        const warehouseInfo = doc.warehouse_name ? 
-            `<span class="warehouse-info">${doc.warehouse_name}</span>` : 
-            'N/A';
-        
-        // Format product items
-        const productItems = doc.packaged_product_items || 'N/A';
-        
-        // Format quantity and price
-        const quantity = doc.orderline_quantity || 'N/A';
-        const totalPrice = doc.orderline_total_price ? `$${parseFloat(doc.orderline_total_price).toFixed(2)}` : 'N/A';
+        const statusClass = getStatusClass(doc.approval_status);
+        const row = document.createElement('tr');
         
         row.innerHTML = `
-
-        
-            <td>${doc.document_id || ''}</td>
-            <td>${doc.vehicle_license_no || ''}</td>
-            <td>${deliveryDateTime}</td>
-            <td>${doc.delivery_man_name || ''}</td>
-            <td>${warehouseInfo}</td>
-            <td>${batchInfo}</td>
-            <td><div class="traceability-info">${productItems}</div></td>
-            <td>${orderDetails}</td>
-            <td>${quantity}</td>
-            <td>${totalPrice}</td>
+            <td>DOC-${doc.document_id.toString().padStart(5, '0')}</td>
+            <td>${doc.document_type}</td>
+            <td>${doc.document_number || 'N/A'}</td>
             <td>
-                <button class="btn-edit" onclick="editDelivery(${doc.document_id})">Edit</button>
-                <button class="btn-delete" onclick="deleteDelivery(${doc.document_id})">Delete</button>
+                <div>SH-${doc.shipment_id.toString().padStart(5, '0')}</div>
+                <small class="text-muted">${doc.shipment_destination}</small>
+            </td>
+            <td>${formatDate(doc.issue_date)}</td>
+            <td>${doc.issued_by}</td>
+            <td><span class="status-badge ${statusClass}">${doc.approval_status}</span></td>
+            <td>
+                <button class="action-btn btn-view" data-id="${doc.document_id}" title="View">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn btn-edit" data-id="${doc.document_id}" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn btn-delete" data-id="${doc.document_id}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
             </td>
         `;
+        
+        tableBody.appendChild(row);
+    });
+    
+    // Add event listeners to action buttons
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', () => viewDocument(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => editDocument(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => deleteDocument(btn.dataset.id));
     });
 }
 
-// Modal functions
-function openDeliveryModal() {
-    currentEditingItem = null;
-    document.getElementById('deliveryModalTitle').textContent = 'Add New Delivery';
-    document.getElementById('deliveryForm').reset();
-    document.getElementById('deliveryModal').style.display = 'block';
+// Get status class for styling
+function getStatusClass(status) {
+    if (!status) return 'status-pending';
     
-    // Set default date to today
-    document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
+    switch (status.toLowerCase()) {
+        case 'approved':
+            return 'status-approved';
+        case 'rejected':
+            return 'status-rejected';
+        default:
+            return 'status-pending';
+    }
 }
 
-function closeDeliveryModal() {
-    document.getElementById('deliveryModal').style.display = 'none';
+// Format date for display
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    } catch (error) {
+        return 'Invalid Date';
+    }
 }
 
-// Edit function
-function editDelivery(deliveryId) {
-    const delivery = allDeliveryDocuments.find(d => d.document_id == deliveryId);
-    if (!delivery) return;
-    
-    currentEditingItem = deliveryId;
-    document.getElementById('deliveryModalTitle').textContent = 'Edit Delivery';
-    document.getElementById('vehicleLicense').value = delivery.vehicle_license_no || '';
-    document.getElementById('deliveryDate').value = delivery.delivery_date || '';
-    document.getElementById('deliveryTime').value = delivery.delivery_time || '';
-    document.getElementById('deliveryManName').value = delivery.delivery_man_name || '';
-    document.getElementById('deliveryModal').style.display = 'block';
+// Load shipments for dropdown
+async function loadShipments() {
+    try {
+        const response = await fetch('api.php?action=shipments');
+        const shipments = await response.json();
+        populateShipmentDropdown(shipments);
+    } catch (error) {
+        console.error('Error loading shipments:', error);
+    }
 }
 
-// Save function
-async function saveDelivery() {
-    const vehicleLicense = document.getElementById('vehicleLicense').value;
-    const deliveryDate = document.getElementById('deliveryDate').value;
-    const deliveryTime = document.getElementById('deliveryTime').value;
-    const deliveryManName = document.getElementById('deliveryManName').value;
+// Populate shipment dropdown
+function populateShipmentDropdown(shipments) {
+    const dropdown = document.getElementById('shipmentId');
+    dropdown.innerHTML = '<option value="">Select Shipment</option>';
     
-    if (!vehicleLicense || !deliveryDate || !deliveryTime || !deliveryManName) {
+    if (!shipments || shipments.length === 0) return;
+    
+    shipments.forEach(shipment => {
+        const option = document.createElement('option');
+        option.value = shipment.shipment_id;
+        option.textContent = `SH-${shipment.shipment_id.toString().padStart(5, '0')} - ${shipment.shipment_destination}`;
+        dropdown.appendChild(option);
+    });
+}
+
+// Open document modal for adding
+function openDocumentModal() {
+    currentDocument = null;
+    document.getElementById('modalTitle').textContent = 'Add New Document';
+    document.getElementById('documentForm').reset();
+    document.getElementById('documentId').value = '';
+    document.getElementById('approvalStatus').value = 'Pending';
+    documentModal.show();
+}
+
+
+// Edit document - FIXED
+async function editDocument(documentId) {
+    try {
+        const response = await fetch(`api.php?action=document&id=${documentId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        // CHANGE THIS VARIABLE NAME - THIS IS THE CAUSE OF THE ERROR
+        const docData = await response.json(); // Changed from 'document' to 'docData'
+        
+        if (!docData || !docData.document_id) {
+            throw new Error('Document not found');
+        }
+        
+        // Reset form before populating
+        document.getElementById('documentForm').reset();
+        
+        // Populate form - note: using docData instead of document
+        document.getElementById('modalTitle').textContent = 'Edit Document';
+        document.getElementById('documentId').value = docData.document_id;
+        document.getElementById('documentType').value = docData.document_type || '';
+        document.getElementById('documentNumber').value = docData.document_number || '';
+        
+        // Load shipments before setting value
+        await loadShipments();
+        document.getElementById('shipmentId').value = docData.shipment_id || '';
+        
+        // Format date for input field (YYYY-MM-DD)
+        const issueDate = docData.issue_date ? new Date(docData.issue_date) : null;
+        document.getElementById('issueDate').value = issueDate ? 
+            issueDate.toISOString().split('T')[0] : '';
+        
+        document.getElementById('issuedBy').value = docData.issued_by || '';
+        document.getElementById('filePath').value = docData.file_path || '';
+        document.getElementById('approvalStatus').value = docData.approval_status || 'Pending';
+        document.getElementById('notes').value = docData.notes || '';
+        
+        documentModal.show();
+        
+    } catch (error) {
+        console.error('Error loading document:', error);
+        alert(`Failed to load document: ${error.message}`);
+    }
+}
+// View document
+async function viewDocument(documentId) {
+    try {
+        const response = await fetch(`api.php?action=document&id=${documentId}`);
+        const docData = await response.json();
+        
+        if (document) {
+            // Populate view modal
+             document.getElementById('viewDocumentType').textContent = docData.document_type || 'N/A';
+            document.getElementById('viewDocumentNumber').textContent = document.document_number || 'N/A';
+            
+            const statusBadge = document.getElementById('viewStatus');
+            statusBadge.textContent = document.approval_status;
+            statusBadge.className = `status-badge ${getStatusClass(document.approval_status)}`;
+            
+            document.getElementById('viewDestination').textContent = document.shipment_destination || 'N/A';
+            document.getElementById('viewShipmentDate').textContent = formatDate(document.shipment_date) || 'N/A';
+            document.getElementById('viewDriver').textContent = document.driver_name || 'N/A';
+            document.getElementById('viewVehicle').textContent = document.vehicle_type || 'N/A';
+            document.getElementById('viewIssueDate').textContent = formatDate(document.issue_date) || 'N/A';
+            document.getElementById('viewIssuedBy').textContent = document.issued_by || 'N/A';
+            
+            // FIX: File path handling
+            const filePath = document.file_path || '';
+            document.getElementById('viewFilePath').textContent = filePath || 'No file attached';
+            
+            // Set download button
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (filePath) {
+                downloadBtn.disabled = false;
+                downloadBtn.onclick = () => downloadDocument(filePath);
+            } else {
+                downloadBtn.disabled = true;
+            }
+            
+            document.getElementById('viewNotes').textContent = document.notes || 'No notes available';
+            
+            viewModal.show();
+        }
+    } catch (error) {
+        console.error('Error loading document:', error);
+        alert('Failed to load document details');
+    }
+}
+
+
+// Download document
+function downloadDocument(filePath) {
+    if (!filePath) {
+        alert('No file path available for download');
+        return;
+    }
+    
+    // Create a temporary link to trigger download
+    const link = document.createElement('a');
+    link.href = filePath;
+    link.download = filePath.split('/').pop() || 'document';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Save document (add or update)
+async function saveDocument() {
+    const documentId = document.getElementById('documentId').value;
+    const formData = {
+        shipment_id: document.getElementById('shipmentId').value,
+        document_type: document.getElementById('documentType').value,
+        document_number: document.getElementById('documentNumber').value,
+        issue_date: document.getElementById('issueDate').value,
+        issued_by: document.getElementById('issuedBy').value,
+        file_path: document.getElementById('filePath').value,
+        approval_status: document.getElementById('approvalStatus').value,
+        notes: document.getElementById('notes').value
+    };
+    
+    // Validate required fields
+    if (!formData.shipment_id || !formData.document_type || !formData.issued_by || !formData.issue_date) {
         alert('Please fill in all required fields');
         return;
     }
     
-    const data = {
-        action: currentEditingItem ? 'update_delivery' : 'add_delivery',
-        vehicle_license_no: vehicleLicense,
-        date: deliveryDate,
-        time: deliveryTime,
-        delivery_man_name: deliveryManName
-    };
-    
-    if (currentEditingItem) {
-        data.delivery_id = currentEditingItem;
-    }
-    
     try {
-        const response = await fetch('api.php', {
-            method: currentEditingItem ? 'PUT' : 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
+        const action = documentId ? 'update' : 'add';
+        const url = 'api.php';
         
-        const result = await response.json();
-        
-        if (result.success) {
-            closeDeliveryModal();
-            loadDeliveryDocuments();
-            loadStats();
-            alert(currentEditingItem ? 'Delivery updated successfully' : 'Delivery added successfully');
-        } else {
-            alert('Error: ' + (result.error || 'Unknown error'));
-        }
-    } catch (error) {
-        console.error('Error saving delivery:', error);
-        alert('Failed to save delivery');
-    }
-}
-
-// Delete function
-async function deleteDelivery(deliveryId) {
-    if (!confirm('Are you sure you want to delete this delivery? This will also affect related traceability records.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('api.php', {
-            method: 'DELETE',
+        const response = await fetch(url, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                action: 'delete_delivery',
-                delivery_id: deliveryId
+                action: action,
+                document_id: documentId,
+                ...formData
             })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            loadDeliveryDocuments();
-            loadStats();
-            alert('Delivery deleted successfully');
+            documentModal.hide();
+            refreshData();
+            alert(`Document ${documentId ? 'updated' : 'added'} successfully!`);
         } else {
-            alert('Failed to delete delivery');
+            alert('Error saving document. Please try again.');
         }
     } catch (error) {
-        console.error('Error deleting delivery:', error);
-        alert('Failed to delete delivery');
+        console.error('Error saving document:', error);
+        alert('Failed to save document');
     }
 }
 
-// Search functionality
-function searchDeliveries() {
-    const searchTerm = document.getElementById('deliverySearch').value.toLowerCase();
-    const filteredDocuments = allDeliveryDocuments.filter(doc => 
-        (doc.vehicle_license_no && doc.vehicle_license_no.toLowerCase().includes(searchTerm)) ||
-        (doc.delivery_man_name && doc.delivery_man_name.toLowerCase().includes(searchTerm)) ||
-        (doc.warehouse_name && doc.warehouse_name.toLowerCase().includes(searchTerm)) ||
-        (doc.packaged_product_batch_number && doc.packaged_product_batch_number.toLowerCase().includes(searchTerm)) ||
-        (doc.packaged_product_items && doc.packaged_product_items.toLowerCase().includes(searchTerm)) ||
-        (doc.order_location && doc.order_location.toLowerCase().includes(searchTerm))
-    );
-    displayDeliveryDocuments(filteredDocuments);
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('deliveryModal');
+// Delete document
+async function deleteDocument(documentId) {
+    if (!confirm('Are you sure you want to delete this document?')) {
+        return;
+    }
     
-    if (event.target == modal) {
-        closeDeliveryModal();
+    try {
+        const response = await fetch('api.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'delete',
+                document_id: documentId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            refreshData();
+            alert('Document deleted successfully!');
+        } else {
+            alert('Error deleting document. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Failed to delete document');
     }
 }
 
+// Search documents
+function searchDocuments() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const tableBody = document.getElementById('documentsTableBody');
+    const rows = tableBody.getElementsByTagName('tr');
+    
+    for (let row of rows) {
+        const cells = row.getElementsByTagName('td');
+        let match = false;
+        
+        for (let cell of cells) {
+            if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                match = true;
+                break;
+            }
+        }
+        
+        row.style.display = match ? '' : 'none';
+    }
+}
+
+// Filter documents by status and type
+function filterDocuments() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const tableBody = document.getElementById('documentsTableBody');
+    const rows = tableBody.getElementsByTagName('tr');
+    
+    for (let row of rows) {
+        const statusCell = row.cells[6];
+        const typeCell = row.cells[1];
+        
+        const statusMatch = !statusFilter || statusCell.textContent.includes(statusFilter);
+        const typeMatch = !typeFilter || typeCell.textContent.includes(typeFilter);
+        
+        row.style.display = (statusMatch && typeMatch) ? '' : 'none';
+    }
+}
+
+// Refresh all data
+function refreshData() {
+    loadDocumentStats();
+    loadDocuments();
+    loadShipments();
+}

@@ -11,6 +11,8 @@ class StockMonitoringHandler {
     
     // Get all harvest batches with stock details
     public function getAllHarvestBatches() {
+
+        // Harvest Batches = hb , Warehouses = w , Harvests = h , Farms = f
         $sql = "SELECT 
                     hb.harvest_batch_id,
                     hb.batch_number,
@@ -134,6 +136,8 @@ class StockMonitoringHandler {
     // Search harvest batches
     public function searchHarvestBatches($searchTerm) {
         $searchTerm = '%' . $searchTerm . '%';
+
+        // hb = harvest_batches , w = warehouses , h = harvests , f = farms
         $stmt = $this->conn->prepare("SELECT 
                     hb.harvest_batch_id,
                     hb.batch_number,

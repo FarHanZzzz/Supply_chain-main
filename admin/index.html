@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAAAAS | Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #2c3e50;
+            --sidebar-hover: #34495e;
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-menu {
+            padding: 15px 0;
+        }
+        
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu li a:hover,
+        .sidebar-menu li a.active {
+            background: var(--sidebar-hover);
+            color: white;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .sidebar-menu li a i {
+            margin-right: 12px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .sidebar-menu li a.active i {
+            color: var(--primary-color);
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar.active ~ .main-content {
+                margin-left: var(--sidebar-width);
+            }
+            
+            .toggle-btn {
+                display: block;
+            }
+        }
+        
+        /* Toggle button for mobile */
+        .toggle-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: var(--sidebar-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            z-index: 999;
+            display: none;
+        }
+        
+        /* Card Styling */
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        /* Table Styling */
+        .table-responsive {
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+        
+        .status-expired {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+        
+        /* Stat Cards */
+        .stat-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .stat-card h6 {
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Product Table Specific Styles */
+        #productTable .product-image {
+            width: 36px;
+            height: 36px;
+            background-color: #e9f5ee;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2e8b57;
+        }
+        
+        #productTable .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+        
+        #productTable .action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            color: white;
+        }
+        
+        #productTable .edit-btn {
+            background-color: #fd7e14;
+        }
+        
+        #productTable .delete-btn {
+            background-color: #dc3545;
+        }
+        
+        .packaging-cell {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .user-dropdown img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toggle Button for Mobile -->
+    <button class="toggle-btn" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3 class="d-flex align-items-center">
+                <i class="fas fa-seedling me-2"></i>FRAAAAS
+            </h3>
+        </div>
+        
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="#" class="active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature1/">
+                        <i class="fas fa-apple-alt"></i>
+                        Agriculture Products
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature2/">
+                        <i class="fas fa-warehouse"></i>
+                        Inventory
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature3/">
+                        <i class="fas fa-truck"></i>
+                        Logistics
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature4/">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Tracking
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature5/">
+                        <i class="fas fa-thermometer-half"></i>
+                        Condition Monitoring
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature6/">
+                        <i class="fas fa-file-alt"></i>
+                        Documents
+                    </a>
+                </li>
+                <li>
+                    <a href="/feature7/">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-footer p-3">
+            <div class="text-center">
+                <small class="text-white-50">FRAAAAS v2.0</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div>
+                <h1 class="h3 mb-0">Dashboard Overview</h1>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="btn-toolbar me-3">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                        <i class="fas fa-calendar me-1"></i>This week
+                    </button>
+                </div>
+                <div class="dropdown user-dropdown">
+                    <a class="dropdown-toggle d-flex align-items-center" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=3498db&color=fff" alt="Admin">
+                        <span>Admin</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Active Products</h6>
+                                <h2 class="mb-0">24</h2>
+                            </div>
+                            <i class="fas fa-apple-alt fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Inventory Items</h6>
+                                <h2 class="mb-0">156</h2>
+                            </div>
+                            <i class="fas fa-warehouse fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Active Shipments</h6>
+                                <h2 class="mb-0">12</h2>
+                            </div>
+                            <i class="fas fa-truck fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title">Alerts</h6>
+                                <h2 class="mb-0">3</h2>
+                            </div>
+                            <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5>Supply Chain Performance</h5>
+                    </div>
+                    <div class="card-body chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5>Inventory Status</h5>
+                    </div>
+                    <div class="card-body chart-container">
+                        <canvas id="inventoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Product Inventory</h5>
+                <button class="btn btn-sm btn-primary" id="addProductBtn">
+                    <i class="fas fa-plus me-1"></i> Add Product
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="productTable">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Planted</th>
+                                <th>Harvest</th>
+                                <th>Shelf Life</th>
+                                <th>Packaging</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody">
+                            <!-- Products will be loaded here by JavaScript -->
+                            <tr>
+                                <td>
+                                    <div class="product-image">
+                                        <i class="fas fa-apple-alt"></i>
+                                    </div>
+                                </td>
+                                <td>PRD-001</td>
+                                <td>Organic Apples</td>
+                                <td>Fruit</td>
+                                <td>2023-03-15</td>
+                                <td>2023-09-10</td>
+                                <td>30 days</td>
+                                <td class="packaging-cell">Cardboard boxes with ventilation</td>
+                                <td><span class="status-badge status-active">Active</span></td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button class="action-btn edit-btn">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="action-btn delete-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="product-image">
+                                        <i class="fas fa-carrot"></i>
+                                    </div>
+                                </td>
+                                <td>PRD-002</td>
+                                <td>Fresh Carrots</td>
+                                <td>Vegetable</td>
+                                <td>2023-04-20</td>
+                                <td>2023-08-15</td>
+                                <td>21 days</td>
+                                <td class="packaging-cell">Plastic bags with moisture control</td>
+                                <td><span class="status-badge status-active">Active</span></td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button class="action-btn edit-btn">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="action-btn delete-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="product-image">
+                                        <i class="fas fa-wheat"></i>
+                                    </div>
+                                </td>
+                                <td>PRD-003</td>
+                                <td>Premium Wheat</td>
+                                <td>Grain</td>
+                                <td>2023-02-10</td>
+                                <td>2023-07-30</td>
+                                <td>180 days</td>
+                                <td class="packaging-cell">Jute sacks with humidity control</td>
+                                <td><span class="status-badge status-expired">Expired</span></td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button class="action-btn edit-btn">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="action-btn delete-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="admindashboard.js"></script>
+</body>
+</html>

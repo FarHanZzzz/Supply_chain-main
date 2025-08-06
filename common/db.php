@@ -3,7 +3,7 @@
 $servername = "localhost";
 $username = "root"; // Replace with your MySQL username
 $password = "";     // Replace with your MySQL password
-$dbname = "farhansupply_db"; // Replace with your database name
+$dbname = "farhansupply_db2"; // Replace with your database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

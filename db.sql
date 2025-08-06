@@ -1,7 +1,8 @@
-DROP DATABASE IF EXISTS farhansupply_db;
-CREATE DATABASE farhansupply_db;
-USE farhansupply_db;
+DROP DATABASE IF EXISTS farhansupply_db2;
+CREATE DATABASE farhansupply_db2;
+USE farhansupply_db2;
 
+-- Create tables in proper dependency order
 CREATE TABLE Farmers (
     farmer_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
@@ -23,7 +24,7 @@ CREATE TABLE Farmer_Farm_Assignments (
     farm_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE,
-    duration INT, -- Duration in days, can be calculated
+    duration INT,
     role VARCHAR(100),
     FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id),
     FOREIGN KEY (farm_id) REFERENCES Farms(farm_id)
@@ -64,12 +65,12 @@ CREATE TABLE Farmer_Required_Inventory (
 CREATE TABLE Material_Utilization (
     utilization_id INT AUTO_INCREMENT PRIMARY KEY,
     harvest_id INT NOT NULL,
-    inventory_id INT NOT NULL, -- Refers to Farmer_Required_Inventory
+    inventory_id INT NOT NULL,
     quantity DECIMAL(10,2),
     material_name VARCHAR(255),
-    farmer_id INT, -- Farmer responsible for utilization
+    farmer_id INT,
     date DATE,
-    FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE ,
+    FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
     FOREIGN KEY (inventory_id) REFERENCES Farmer_Required_Inventory(inventory_id) ON DELETE CASCADE,
     FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id)
 );
@@ -106,7 +107,7 @@ CREATE TABLE Factories (
     owner_id INT NOT NULL,
     factory_name VARCHAR(255) NOT NULL,
     factory_region VARCHAR(100),
-    harvest_received_quantity DECIMAL(10,2), -- This might be better as a summary or transactional data
+    harvest_received_quantity DECIMAL(10,2),
     FOREIGN KEY (owner_id) REFERENCES Owners(owner_id) ON DELETE CASCADE
 );
 
@@ -120,17 +121,17 @@ CREATE TABLE Product_Batches (
 
 CREATE TABLE Packaged_Product_Batches (
     packaged_product_batch_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_batch_id INT NOT NULL, -- Link to Product_Batches from Factory
-    warehouse_id INT, -- Where it's stored
+    product_batch_id INT NOT NULL,
+    warehouse_id INT,
     production_quantity DECIMAL(10,2),
-    FOREIGN KEY (product_batch_id) REFERENCES Product_Batches(product_batch_id) ON DELETE CASCADE ,
+    FOREIGN KEY (product_batch_id) REFERENCES Product_Batches(product_batch_id) ON DELETE CASCADE,
     FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Package_Products (
     packaged_product_id INT AUTO_INCREMENT PRIMARY KEY,
     packaged_product_batch_id INT NOT NULL,
-    product_name VARCHAR(255), -- Assuming a name for the individual product
+    product_name VARCHAR(255),
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
@@ -146,29 +147,44 @@ CREATE TABLE Transports (
     driver_id INT NOT NULL,
     vehicle_type VARCHAR(100),
     vehicle_capacity DECIMAL(10,2),
-    current_capacity DECIMAL(10,2), -- Assuming this is current load
+    current_capacity DECIMAL(10,2),
     FOREIGN KEY (driver_id) REFERENCES Drivers(driver_id) ON DELETE CASCADE
 );
 
+-- Now we can create Shipments since all dependencies exist
 CREATE TABLE Shipments (
     shipment_id INT AUTO_INCREMENT PRIMARY KEY,
     transport_id INT NOT NULL,
-    harvest_batch_id INT, -- If shipping raw harvest batches
-    packaged_product_batch_id INT, -- If shipping packaged products
+    harvest_batch_id INT,
+    packaged_product_batch_id INT,
     shipment_date DATE,
     shipment_destination VARCHAR(255),
     status VARCHAR(50),
-    FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE ,
-    FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE CASCADE ,
+    FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE,
+    FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE CASCADE,
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
+);
+
+-- Now we can create Shipping_Documents since Shipments exists
+CREATE TABLE Shipping_Documents (
+    document_id INT AUTO_INCREMENT PRIMARY KEY,
+    shipment_id INT NOT NULL,
+    document_type ENUM('Invoice', 'Bill of Lading', 'Customs Declaration', 'Delivery Note', 'Other') NOT NULL,
+    document_number VARCHAR(100),
+    issue_date DATE,
+    issued_by VARCHAR(255),
+    file_path VARCHAR(255),
+    approval_status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+    notes TEXT,
+    FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Sensors (
     sensor_id INT AUTO_INCREMENT PRIMARY KEY,
     sensor_type VARCHAR(100),
-    warehouse_id INT, -- Can be in a warehouse
-    transport_id INT, -- Can be in a transport
-    FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE ,
+    warehouse_id INT,
+    transport_id INT,
+    FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE,
     FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE
 );
 
@@ -178,16 +194,16 @@ CREATE TABLE Sensor_Data (
     timestamp DATETIME,
     temperature DECIMAL(5,2),
     humidity DECIMAL(5,2),
-    travel_duration INT, -- In minutes/hours
-    coordinates VARCHAR(255), -- Store as 'lat,long'
+    travel_duration INT,
+    coordinates VARCHAR(255),
     FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Deliveries (
     delivery_id INT AUTO_INCREMENT PRIMARY KEY,
     vehicle_license_no VARCHAR(50),
-    date DATE,
-    time TIME,
+    delivery_date DATE,  -- Changed from 'date' to avoid reserved word
+    delivery_time TIME,  -- Changed from 'time' to avoid reserved word
     delivery_man_name VARCHAR(255)
 );
 
@@ -200,22 +216,20 @@ CREATE TABLE Orders (
 CREATE TABLE Orderlines (
     orderline_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
-    packaged_product_batch_id INT, -- Link to specific batch
-    packaged_product_id INT, -- Link to specific product
-    delivery_id INT, -- Link to delivery if part of one
+    packaged_product_batch_id INT,
+    packaged_product_id INT,
+    delivery_id INT,
     quantity INT,
     unit_price DECIMAL(10,2),
     discount_percentage DECIMAL(5,2),
-    total_price DECIMAL(10,2), -- Derived
+    total_price DECIMAL(10,2),
     FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE,
     FOREIGN KEY (packaged_product_id) REFERENCES Package_Products(packaged_product_id) ON DELETE CASCADE,
     FOREIGN KEY (delivery_id) REFERENCES Deliveries(delivery_id) ON DELETE CASCADE
 );
 
-
-
--- Sample data for testing
+-- Sample data for testing (same as before, but with date/time column names fixed)
 INSERT INTO Farmers (first_name, last_name, phone_number, email) VALUES
 ('John', 'Doe', '123-456-7890', 'john.doe@example.com'),
 ('Jane', 'Smith', '098-765-4321', 'jane.smith@example.com'),
@@ -300,10 +314,17 @@ INSERT INTO Transports (driver_id, vehicle_type, vehicle_capacity, current_capac
 (2, 'Van', 2000.00, 0.00),
 (3, 'Refrigerated Truck', 3000.00, 0.00);
 
+-- Now we can insert Shipments since all dependencies exist
 INSERT INTO Shipments (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status) VALUES
 (1, 1, NULL, '2024-06-17', 'Factory A', 'In Transit'),
 (2, NULL, 1, '2024-06-25', 'Retail Store B', 'Delivered'),
 (3, 3, NULL, '2024-09-03', 'Processing Plant C', 'Pending');
+
+-- Now we can insert Shipping_Documents since Shipments exists
+INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, issue_date, issued_by, file_path, approval_status, notes) VALUES
+(1, 'Invoice', 'INV-001', '2024-06-17', 'Admin', '/invoices/INV-001.pdf', 'Approved', 'Initial shipment invoice'),
+(2, 'Bill of Lading', 'BOL-001', '2024-06-25', 'Admin', '/bills/BOL-001.pdf', 'Approved', 'Product delivery'),
+(3, 'Customs Declaration', 'CUS-001', '2024-09-03', 'Admin', '/customs/CUS-001.pdf', 'Pending', 'International shipment');
 
 INSERT INTO Sensors (sensor_type, warehouse_id, transport_id) VALUES
 ('Temperature', 2, NULL),
@@ -317,7 +338,8 @@ INSERT INTO Sensor_Data (sensor_id, timestamp, temperature, humidity, travel_dur
 (3, '2024-06-17 08:30:00', NULL, NULL, 120, '40.7128,-74.0060'),
 (4, '2024-09-03 14:15:00', 2.0, NULL, NULL, NULL);
 
-INSERT INTO Deliveries (vehicle_license_no, date, time, delivery_man_name) VALUES
+-- Fixed column names in Deliveries
+INSERT INTO Deliveries (vehicle_license_no, delivery_date, delivery_time, delivery_man_name) VALUES
 ('ABC-123', '2024-06-25', '14:30:00', 'Carlos Rodriguez'),
 ('XYZ-789', '2024-07-10', '09:15:00', 'Emma Thompson'),
 ('DEF-456', '2024-09-08', '16:45:00', 'James Wilson');
@@ -331,4 +353,3 @@ INSERT INTO Orderlines (order_id, packaged_product_batch_id, packaged_product_id
 (1, 1, 1, 1, 50, 5.99, 0.00, 299.50),
 (2, 2, 2, 2, 100, 2.49, 5.00, 236.55),
 (3, 3, 3, 3, 25, 8.99, 10.00, 202.28);
-

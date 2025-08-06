@@ -11,6 +11,8 @@ class ShipmentManagementHandler {
     
     // Get all shipments with their details
     public function getAllShipments() {
+
+        // s = shipments , t = transports , hb = harvest_batches , ppb = packaged_product_batches
         $sql = "SELECT 
                     s.shipment_id,
                     s.transport_id,

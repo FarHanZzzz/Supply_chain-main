@@ -18,9 +18,10 @@ class OrderManagementHandler {
         }
     
         // Use consistent table name casing
+        // orders = o , deliveries = d
         $sql = "SELECT 
                     order_id,
-                    
+    
                     location,
                     order_date
                 FROM orders

@@ -79,7 +79,7 @@ function displayWarehouseStock(stock) {
         tr.innerHTML = `
             <td>${row.warehouse_name}</td>
             <td class="${getStockClass(row.raw_quantity)}">${row.raw_quantity}</td>
-            <td class="${getStockClass(row.finished_quantity)}">${row.finished_quantity}</td>
+            
         `;
         tbody.appendChild(tr);
     });
