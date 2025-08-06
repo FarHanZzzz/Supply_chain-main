@@ -230,6 +230,68 @@ class ProductRecordsHandler {
         
         return $batches;
     }
+
+    // Crop Sowing CRUD
+    public function getAllCropSowings() {
+        $sql = "SELECT cs.harvest_id, cs.crop_id, cs.plant_date, cs.harvest_date, c.crop_name, h.harvest_name
+                FROM Crop_Sowing cs
+                JOIN Crops c ON cs.crop_id = c.crop_id
+                JOIN Harvests h ON cs.harvest_id = h.harvest_id
+                ORDER BY cs.plant_date DESC";
+        $result = $this->conn->query($sql);
+        $sowings = [];
+        if ($result && $result->num_rows > 0) {
+            while($row = $result->fetch_assoc()) {
+                $sowings[] = $row;
+            }
+        }
+        return $sowings;
+    }
+
+    public function addCropSowing($harvest_id, $crop_id, $plant_date, $harvest_date) {
+        $stmt = $this->conn->prepare("INSERT INTO Crop_Sowing (harvest_id, crop_id, plant_date, harvest_date) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("iiss", $harvest_id, $crop_id, $plant_date, $harvest_date);
+        $result = $stmt->execute();
+        $stmt->close();
+        return $result;
+    }
+
+    public function updateCropSowing($harvest_id, $crop_id, $plant_date, $harvest_date) {
+        $stmt = $this->conn->prepare("UPDATE Crop_Sowing SET plant_date = ?, harvest_date = ? WHERE harvest_id = ? AND crop_id = ?");
+        $stmt->bind_param("ssii", $plant_date, $harvest_date, $harvest_id, $crop_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        return $result;
+    }
+
+    public function deleteCropSowing($harvest_id, $crop_id) {
+        $stmt = $this->conn->prepare("DELETE FROM Crop_Sowing WHERE harvest_id = ? AND crop_id = ?");
+        $stmt->bind_param("ii", $harvest_id, $crop_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        return $result;
+    }
+
+    // Traceability: Get full chain for a packaged product
+    public function getProductTraceability($packaged_product_id) {
+        $sql = "SELECT pp.packaged_product_id, pp.product_name, ppb.packaged_product_batch_id, pb.product_batch_id, pb.production_date, f.factory_id, f.factory_name, h.harvest_id, h.harvest_name, cs.crop_id, c.crop_name, cs.plant_date, cs.harvest_date, fa.farm_id, fa.farm_name
+                FROM Package_Products pp
+                JOIN Packaged_Product_Batches ppb ON pp.packaged_product_batch_id = ppb.packaged_product_batch_id
+                JOIN Product_Batches pb ON ppb.product_batch_id = pb.product_batch_id
+                JOIN Factories f ON pb.factory_id = f.factory_id
+                JOIN Harvests h ON pb.product_batch_id = h.harvest_id OR pb.product_batch_id = h.harvest_id
+                LEFT JOIN Crop_Sowing cs ON h.harvest_id = cs.harvest_id
+                LEFT JOIN Crops c ON cs.crop_id = c.crop_id
+                LEFT JOIN Farms fa ON h.farm_id = fa.farm_id
+                WHERE pp.packaged_product_id = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $packaged_product_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $trace = $result->fetch_assoc();
+        $stmt->close();
+        return $trace;
+    }
 }
 ?>
 

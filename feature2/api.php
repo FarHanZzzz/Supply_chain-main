@@ -40,6 +40,9 @@ switch ($method) {
                 case 'low_stock':
                     echo json_encode($handler->getLowStockItems());
                     break;
+                case 'warehouse_stock':
+                    echo json_encode($handler->getWarehouseStockBreakdown());
+                    break;
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }

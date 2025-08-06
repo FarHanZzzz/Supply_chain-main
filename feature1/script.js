@@ -545,3 +545,217 @@ function escapeHtml(unsafe) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+// --- Crop Sowing Logic ---
+let currentEditingSowing = null;
+
+async function loadSowings() {
+    try {
+        const response = await fetch('api.php?action=crop_sowings');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const sowings = await response.json();
+        displaySowings(sowings);
+    } catch (error) {
+        console.error('Error loading sowings:', error);
+        alert('Failed to load sowing data');
+    }
+}
+
+function displaySowings(sowings) {
+    const tableBody = document.getElementById('sowingsTableBody');
+    tableBody.innerHTML = '';
+    sowings.forEach(sowing => {
+        const row = tableBody.insertRow();
+        row.innerHTML = `
+            <td>${sowing.crop_name || ''}</td>
+            <td>${sowing.harvest_name || ''}</td>
+            <td>${sowing.plant_date || ''}</td>
+            <td>${sowing.harvest_date || ''}</td>
+            <td>
+                <button class="btn-edit" onclick="editSowing(${sowing.harvest_id}, ${sowing.crop_id}, '${sowing.plant_date}', '${sowing.harvest_date}')">Edit</button>
+                <button class="btn-delete" onclick="deleteSowing(${sowing.harvest_id}, ${sowing.crop_id})">Delete</button>
+            </td>
+        `;
+    });
+}
+
+function openSowingModal() {
+    currentEditingSowing = null;
+    document.getElementById('sowingModalTitle').textContent = 'Add New Sowing';
+    document.getElementById('sowingForm').reset();
+    document.getElementById('sowingModal').style.display = 'block';
+    populateSowingDropdowns();
+}
+
+function closeSowingModal() {
+    document.getElementById('sowingModal').style.display = 'none';
+}
+
+function editSowing(harvestId, cropId, plantDate, harvestDate) {
+    currentEditingSowing = { harvestId, cropId };
+    document.getElementById('sowingModalTitle').textContent = 'Edit Sowing';
+    document.getElementById('sowingCropSelect').value = cropId;
+    document.getElementById('sowingHarvestSelect').value = harvestId;
+    document.getElementById('plantDate').value = plantDate;
+    document.getElementById('sowingHarvestDate').value = harvestDate;
+    document.getElementById('sowingModal').style.display = 'block';
+    populateSowingDropdowns();
+}
+
+async function saveSowing() {
+    const cropId = document.getElementById('sowingCropSelect').value;
+    const harvestId = document.getElementById('sowingHarvestSelect').value;
+    const plantDate = document.getElementById('plantDate').value;
+    const harvestDate = document.getElementById('sowingHarvestDate').value;
+    if (!cropId || !harvestId || !plantDate || !harvestDate) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    const data = {
+        action: currentEditingSowing ? 'update_crop_sowing' : 'add_crop_sowing',
+        crop_id: parseInt(cropId),
+        harvest_id: parseInt(harvestId),
+        plant_date: plantDate,
+        harvest_date: harvestDate
+    };
+    if (currentEditingSowing) {
+        data.crop_id = currentEditingSowing.cropId;
+        data.harvest_id = currentEditingSowing.harvestId;
+    }
+    try {
+        const response = await fetch('api.php', {
+            method: currentEditingSowing ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Network response was not ok');
+        const result = await response.json();
+        if (result.success) {
+            closeSowingModal();
+            loadSowings();
+            alert(currentEditingSowing ? 'Sowing updated successfully' : 'Sowing added successfully');
+        } else {
+            alert('Error: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error saving sowing:', error);
+        alert('Failed to save sowing: ' + error.message);
+    }
+}
+
+async function deleteSowing(harvestId, cropId) {
+    if (!confirm('Are you sure you want to delete this sowing record?')) return;
+    try {
+        const response = await fetch('api.php', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_crop_sowing', harvest_id: harvestId, crop_id: cropId })
+        });
+        if (!response.ok) throw new Error('Network response was not ok');
+        const result = await response.json();
+        if (result.success) {
+            loadSowings();
+            alert('Sowing deleted successfully');
+        } else {
+            alert('Error: ' + (result.error || 'Failed to delete sowing'));
+        }
+    } catch (error) {
+        console.error('Error deleting sowing:', error);
+        alert('Failed to delete sowing: ' + error.message);
+    }
+}
+
+async function populateSowingDropdowns() {
+    // Populate crop dropdown
+    try {
+        const cropRes = await fetch('api.php?action=crops');
+        const crops = await cropRes.json();
+        const cropDropdown = document.getElementById('sowingCropSelect');
+        cropDropdown.innerHTML = '<option value="">Select Crop</option>';
+        crops.forEach(crop => {
+            const option = document.createElement('option');
+            option.value = crop.crop_id;
+            option.textContent = crop.crop_name;
+            cropDropdown.appendChild(option);
+        });
+    } catch {}
+    // Populate harvest dropdown
+    try {
+        const harvestRes = await fetch('api.php?action=harvests');
+        const harvests = await harvestRes.json();
+        const harvestDropdown = document.getElementById('sowingHarvestSelect');
+        harvestDropdown.innerHTML = '<option value="">Select Harvest</option>';
+        harvests.forEach(harvest => {
+            const option = document.createElement('option');
+            option.value = harvest.harvest_id;
+            option.textContent = harvest.harvest_name;
+            harvestDropdown.appendChild(option);
+        });
+    } catch {}
+}
+
+function searchSowings() {
+    const searchTerm = document.getElementById('sowingSearch').value.toLowerCase();
+    const table = document.getElementById('sowingsTable');
+    const rows = table.getElementsByTagName('tr');
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        let found = false;
+        for (let j = 0; j < cells.length - 1; j++) {
+            if (cells[j].textContent.toLowerCase().includes(searchTerm)) {
+                found = true;
+                break;
+            }
+        }
+        row.style.display = found ? '' : 'none';
+    }
+}
+
+// --- Traceability Logic ---
+async function lookupTraceability() {
+    const productId = document.getElementById('traceProductId').value;
+    if (!productId) {
+        alert('Please enter a Packaged Product ID');
+        return;
+    }
+    try {
+        const response = await fetch(`api.php?action=traceability&packaged_product_id=${productId}`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const trace = await response.json();
+        displayTraceability(trace);
+    } catch (error) {
+        console.error('Error fetching traceability:', error);
+        alert('Failed to fetch traceability: ' + error.message);
+    }
+}
+
+function displayTraceability(trace) {
+    const resultDiv = document.getElementById('traceabilityResult');
+    if (!trace || trace.error) {
+        resultDiv.innerHTML = `<div style="color:red;">${trace && trace.error ? trace.error : 'No traceability data found.'}</div>`;
+        return;
+    }
+    resultDiv.innerHTML = `
+        <div style="background:#f8f9fa;padding:20px;border-radius:10px;">
+            <h4>Traceability Chain</h4>
+            <ul>
+                <li><b>Product Name:</b> ${trace.product_name || ''}</li>
+                <li><b>Packaged Product Batch ID:</b> ${trace.packaged_product_batch_id || ''}</li>
+                <li><b>Product Batch ID:</b> ${trace.product_batch_id || ''}</li>
+                <li><b>Production Date:</b> ${trace.production_date || ''}</li>
+                <li><b>Factory:</b> ${trace.factory_name || ''}</li>
+                <li><b>Harvest:</b> ${trace.harvest_name || ''}</li>
+                <li><b>Crop:</b> ${trace.crop_name || ''}</li>
+                <li><b>Plant Date:</b> ${trace.plant_date || ''}</li>
+                <li><b>Harvest Date:</b> ${trace.harvest_date || ''}</li>
+                <li><b>Farm:</b> ${trace.farm_name || ''}</li>
+            </ul>
+        </div>
+    `;
+}
+
+// --- Load sowings on page load ---
+document.addEventListener('DOMContentLoaded', function() {
+    loadSowings();
+});

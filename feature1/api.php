@@ -33,6 +33,16 @@ switch ($method) {
                 case 'batches':
                     echo json_encode($handler->getAllPackagedProductBatches());
                     break;
+                case 'crop_sowings':
+                    echo json_encode($handler->getAllCropSowings());
+                    break;
+                case 'traceability':
+                    if (isset($_GET['packaged_product_id'])) {
+                        echo json_encode($handler->getProductTraceability((int)$_GET['packaged_product_id']));
+                    } else {
+                        echo json_encode(['error' => 'packaged_product_id required']);
+                    }
+                    break;
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -74,6 +84,15 @@ switch ($method) {
                         echo json_encode(['success' => false, 'error' => 'Failed to add package']);
                     }
                     break;
+                case 'add_crop_sowing':
+                    $result = $handler->addCropSowing(
+                        $input['harvest_id'],
+                        $input['crop_id'],
+                        $input['plant_date'],
+                        $input['harvest_date']
+                    );
+                    echo json_encode(['success' => $result]);
+                    break;
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -108,6 +127,15 @@ switch ($method) {
                     );
                     echo json_encode(['success' => $result]);
                     break;
+                case 'update_crop_sowing':
+                    $result = $handler->updateCropSowing(
+                        $input['harvest_id'],
+                        $input['crop_id'],
+                        $input['plant_date'],
+                        $input['harvest_date']
+                    );
+                    echo json_encode(['success' => $result]);
+                    break;
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -129,6 +157,13 @@ switch ($method) {
                     break;
                 case 'delete_package':
                     $result = $handler->deletePackage($input['packaged_product_id']);
+                    echo json_encode(['success' => $result]);
+                    break;
+                case 'delete_crop_sowing':
+                    $result = $handler->deleteCropSowing(
+                        $input['harvest_id'],
+                        $input['crop_id']
+                    );
                     echo json_encode(['success' => $result]);
                     break;
                 default:

@@ -205,6 +205,34 @@ class StockMonitoringHandler {
         
         return $items;
     }
+
+    // Unified stock summary by warehouse and stage
+    public function getWarehouseStockBreakdown() {
+        $sql = "SELECT w.warehouse_id, w.warehouse_name,
+            COALESCE(raw.raw_qty, 0) AS raw_quantity,
+            0 AS inprocess_quantity, -- In-process not linked in schema
+            COALESCE(finished.finished_qty, 0) AS finished_quantity
+        FROM Warehouses w
+        LEFT JOIN (
+            SELECT warehouse_id, SUM(quantity) AS raw_qty
+            FROM Harvest_Batches
+            GROUP BY warehouse_id
+        ) raw ON w.warehouse_id = raw.warehouse_id
+        LEFT JOIN (
+            SELECT warehouse_id, SUM(production_quantity) AS finished_qty
+            FROM Packaged_Product_Batches
+            GROUP BY warehouse_id
+        ) finished ON w.warehouse_id = finished.warehouse_id
+        ORDER BY w.warehouse_name";
+        $result = $this->conn->query($sql);
+        $rows = [];
+        if ($result && $result->num_rows > 0) {
+            while($row = $result->fetch_assoc()) {
+                $rows[] = $row;
+            }
+        }
+        return $rows;
+    }
 }
 ?>
 

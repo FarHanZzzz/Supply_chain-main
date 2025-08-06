@@ -8,7 +8,11 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStockSummary();
     loadHarvests();
     loadWarehouses();
+    loadWarehouseStock(); // Load warehouse stock on page load
 });
+
+
+
 
 // Load harvest batches data
 async function loadHarvestBatches() {
@@ -53,6 +57,58 @@ async function loadWarehouses() {
     } catch (error) {
         console.error('Error loading warehouses:', error);
     }
+}
+
+// Load and display warehouse stock breakdown
+async function loadWarehouseStock() {
+    try {
+        const response = await fetch('api.php?action=warehouse_stock');
+        const stock = await response.json();
+        displayWarehouseStock(stock);
+    } catch (error) {
+        console.error('Error loading warehouse stock:', error);
+        alert('Failed to load warehouse stock breakdown');
+    }
+}
+
+function displayWarehouseStock(stock) {
+    const tbody = document.getElementById('warehouseStockTableBody');
+    tbody.innerHTML = '';
+    stock.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.warehouse_name}</td>
+            <td class="${getStockClass(row.raw_quantity)}">${row.raw_quantity}</td>
+            <td class="${getStockClass(row.finished_quantity)}">${row.finished_quantity}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function getStockClass(qty) {
+    qty = parseFloat(qty);
+    if (qty < 100) return 'stock-low';
+    if (qty < 500) return 'stock-medium';
+    return 'stock-high';
+}
+
+// Add styles for stock classes (only once)
+if (!document.getElementById('stock-style')) {
+    const style = document.createElement('style');
+    style.id = 'stock-style';
+    style.innerHTML = `
+        .stock-low { background: #f8d7da; color: #721c24; font-weight: bold; }
+        .stock-medium { background: #fff3cd; color: #856404; font-weight: bold; }
+        .stock-high { background: #d4edda; color: #155724; font-weight: bold; }
+    `;
+    document.head.appendChild(style);
+}
+
+// Load warehouse stock on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadWarehouseStock);
+} else {
+    loadWarehouseStock();
 }
 
 // Display harvest batches in table
@@ -159,19 +215,77 @@ function viewBatch(batchId) {
     alert(`Viewing details for batch ID: ${batchId}`);
 }
 
-// Save batch
+// --- Batch Modal: Batch Number Suggestions and Validation ---
+function generateBatchNumberSuggestion() {
+    const today = new Date();
+    const yyyymmdd = today.getFullYear().toString() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+    return [1,2,3].map(n => `BATCH-${yyyymmdd}-${String(n).padStart(3,'0')}`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate batch number suggestions
+    const datalist = document.getElementById('batchNumberSuggestions');
+    if (datalist) {
+        generateBatchNumberSuggestion().forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            datalist.appendChild(opt);
+        });
+    }
+});
+
+function validateBatchForm() {
+    let valid = true;
+    // Harvest
+    const harvest = document.getElementById('harvestSelect');
+    const harvestError = document.getElementById('harvestSelectError');
+    if (!harvest.value) { harvestError.textContent = 'Harvest is required.'; valid = false; } else { harvestError.textContent = ''; }
+    // Warehouse
+    const warehouse = document.getElementById('warehouseSelect');
+    const warehouseError = document.getElementById('warehouseSelectError');
+    if (!warehouse.value) { warehouseError.textContent = 'Warehouse is required.'; valid = false; } else { warehouseError.textContent = ''; }
+    // Batch Number
+    const batchNumber = document.getElementById('batchNumber');
+    const batchNumberError = document.getElementById('batchNumberError');
+    const batchPattern = /^BATCH-\d{8}-\d{3}$/;
+    if (!batchNumber.value) {
+        batchNumberError.textContent = 'Batch number is required.';
+        valid = false;
+    } else if (!batchPattern.test(batchNumber.value)) {
+        batchNumberError.textContent = 'Format must be BATCH-YYYYMMDD-XXX.';
+        valid = false;
+    } else {
+        batchNumberError.textContent = '';
+    }
+    // Quantity
+    const quantity = document.getElementById('quantity');
+    const quantityError = document.getElementById('quantityError');
+    if (!quantity.value || parseFloat(quantity.value) <= 0) {
+        quantityError.textContent = 'Quantity must be greater than 0.';
+        valid = false;
+    } else {
+        quantityError.textContent = '';
+    }
+    // Status
+    const status = document.getElementById('status');
+    const statusError = document.getElementById('statusError');
+    if (!status.value) { statusError.textContent = 'Status is required.'; valid = false; } else { statusError.textContent = ''; }
+    // Storage Date
+    const storageDate = document.getElementById('storageDate');
+    const storageDateError = document.getElementById('storageDateError');
+    if (!storageDate.value) { storageDateError.textContent = 'Storage date is required.'; valid = false; } else { storageDateError.textContent = ''; }
+    return valid;
+}
+
+// Save batch with validation
 async function saveBatch() {
+    if (!validateBatchForm()) return;
     const harvestId = document.getElementById('harvestSelect').value;
     const warehouseId = document.getElementById('warehouseSelect').value;
     const batchNumber = document.getElementById('batchNumber').value;
     const quantity = document.getElementById('quantity').value;
     const status = document.getElementById('status').value;
     const storageDate = document.getElementById('storageDate').value;
-    
-    if (!harvestId || !warehouseId || !batchNumber || !quantity || !status || !storageDate) {
-        alert('Please fill in all required fields');
-        return;
-    }
     
     const data = {
         action: currentEditingBatch ? 'update_batch' : 'add_batch',
