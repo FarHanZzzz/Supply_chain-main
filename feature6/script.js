@@ -266,45 +266,95 @@ async function editDocument(documentId) {
 // View document
 async function viewDocument(documentId) {
     try {
-        const response = await fetch(`api.php?action=document&id=${documentId}`);
-        const docData = await response.json();
+        // Clear previous modal content
+        const modalBody = document.querySelector('#viewModal .modal-body');
+        modalBody.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading document details...</p>
+            </div>
+        `;
         
-        if (document) {
-            // Populate view modal
-             document.getElementById('viewDocumentType').textContent = docData.document_type || 'N/A';
-            document.getElementById('viewDocumentNumber').textContent = document.document_number || 'N/A';
-            
-            const statusBadge = document.getElementById('viewStatus');
-            statusBadge.textContent = document.approval_status;
-            statusBadge.className = `status-badge ${getStatusClass(document.approval_status)}`;
-            
-            document.getElementById('viewDestination').textContent = document.shipment_destination || 'N/A';
-            document.getElementById('viewShipmentDate').textContent = formatDate(document.shipment_date) || 'N/A';
-            document.getElementById('viewDriver').textContent = document.driver_name || 'N/A';
-            document.getElementById('viewVehicle').textContent = document.vehicle_type || 'N/A';
-            document.getElementById('viewIssueDate').textContent = formatDate(document.issue_date) || 'N/A';
-            document.getElementById('viewIssuedBy').textContent = document.issued_by || 'N/A';
-            
-            // FIX: File path handling
-            const filePath = document.file_path || '';
-            document.getElementById('viewFilePath').textContent = filePath || 'No file attached';
-            
-            // Set download button
-            const downloadBtn = document.getElementById('downloadBtn');
-            if (filePath) {
-                downloadBtn.disabled = false;
-                downloadBtn.onclick = () => downloadDocument(filePath);
-            } else {
-                downloadBtn.disabled = true;
-            }
-            
-            document.getElementById('viewNotes').textContent = document.notes || 'No notes available';
-            
-            viewModal.show();
+        // Show modal immediately
+        viewModal.show();
+        
+        // Fetch document data
+        const response = await fetch(`api.php?action=document&id=${documentId}`);
+        
+        // Check for HTTP errors
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
+        
+        const docData = await response.json();
+        console.log('API response:', docData); // Debugging
+        
+        // Check if we got valid document data
+        if (!docData || typeof docData !== 'object' || !docData.document_id) {
+            throw new Error('Invalid document data received');
+        }
+        
+        // Rebuild modal content with actual data
+        modalBody.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h4>${docData.document_type || 'N/A'}</h4>
+                    <p class="mb-1"><strong>Document Number:</strong> ${docData.document_number || 'N/A'}</p>
+                    <p class="mb-1"><strong>Status:</strong> <span class="status-badge ${getStatusClass(docData.approval_status)}">${docData.approval_status || 'Unknown'}</span></p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-primary" id="downloadBtn" ${!docData.file_path ? 'disabled' : ''}>
+                        <i class="fas fa-download me-1"></i> Download
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>Shipment Information</h6>
+                    <p class="mb-1"><strong>Destination:</strong> ${docData.shipment_destination || 'N/A'}</p>
+                    <p class="mb-1"><strong>Shipment Date:</strong> ${formatDate(docData.shipment_date) || 'N/A'}</p>
+                    <p class="mb-1"><strong>Driver:</strong> ${docData.driver_name || 'N/A'}</p>
+                    <p class="mb-1"><strong>Vehicle:</strong> ${docData.vehicle_type || 'N/A'}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Document Details</h6>
+                    <p class="mb-1"><strong>Issue Date:</strong> ${formatDate(docData.issue_date) || 'N/A'}</p>
+                    <p class="mb-1"><strong>Issued By:</strong> ${docData.issued_by || 'N/A'}</p>
+                    <p class="mb-1"><strong>File:</strong> ${docData.file_path || 'No file attached'}</p>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <h6>Notes</h6>
+                <p class="p-3 bg-light rounded">${docData.notes || 'No notes available'}</p>
+            </div>
+        `;
+        
+        // Add download functionality if file exists
+        if (docData.file_path) {
+            document.getElementById('downloadBtn').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.href = docData.file_path;
+                link.download = docData.file_path.split('/').pop() || 'document';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+        
     } catch (error) {
         console.error('Error loading document:', error);
-        alert('Failed to load document details');
+        modalBody.innerHTML = `
+            <div class="alert alert-danger">
+                <h5>Error Loading Document</h5>
+                <p>${error.message}</p>
+                <p>Please try again or contact support.</p>
+            </div>
+        `;
     }
 }
 
