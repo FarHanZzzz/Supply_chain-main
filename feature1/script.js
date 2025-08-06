@@ -85,11 +85,6 @@ function displayCrops(crops) {
         row.innerHTML = `
             <td>${crop.crop_name || ''}</td>
             <td>${crop.crop_type || ''}</td>
-            <td>${crop.plant_date || 'N/A'}</td>
-            <td>${crop.harvest_date || 'N/A'}</td>
-            <td>${crop.harvest_quantity || 'N/A'}</td>
-            <td>${crop.harvest_shelf_life || 'N/A'}</td>
-            <td>${crop.farm_name || 'N/A'}</td>
             <td>
                 <button class="btn-edit" onclick="editCrop(${crop.crop_id}, '${escapeHtml(crop.crop_name)}', '${escapeHtml(crop.crop_type)}')">Edit</button>
                 <button class="btn-delete" onclick="deleteCrop(${crop.crop_id})">Delete</button>
@@ -111,8 +106,7 @@ function displayHarvests(harvests) {
             <td>${harvest.harvest_quantity || ''}</td>
             <td>${harvest.harvest_shelf_life || ''}</td>
             <td>${harvest.farm_name || ''}</td>
-            <td>${harvest.crop_name || 'N/A'}</td>
-            <td>${harvest.plant_date || 'N/A'}</td>
+            
             <td>
                 <button class="btn-edit" onclick="editHarvest(${harvest.harvest_id}, '${escapeHtml(harvest.harvest_name)}', '${escapeHtml(harvest.harvest_type)}', ${harvest.harvest_quantity}, '${escapeHtml(harvest.harvest_shelf_life)}')">Edit</button>
                 <button class="btn-delete" onclick="deleteHarvest(${harvest.harvest_id})">Delete</button>
@@ -129,6 +123,7 @@ function displayPackages(packages) {
     packages.forEach(pkg => {
         const row = tableBody.insertRow();
         row.innerHTML = `
+        
             <td>${pkg.product_name || ''}</td>
             <td>${pkg.production_quantity || ''}</td>
             <td>${pkg.production_date || ''}</td>
@@ -601,6 +596,9 @@ function editSowing(harvestId, cropId, plantDate, harvestDate) {
     document.getElementById('sowingModal').style.display = 'block';
     populateSowingDropdowns();
 }
+
+
+
 
 async function saveSowing() {
     const cropId = document.getElementById('sowingCropSelect').value;

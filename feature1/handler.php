@@ -71,6 +71,7 @@ class ProductRecordsHandler {
     // Get all packages with their details
     public function getAllPackages() {
         $sql = "SELECT 
+        
                     pp.packaged_product_id,
                     pp.product_name,
                     ppb.production_quantity,
