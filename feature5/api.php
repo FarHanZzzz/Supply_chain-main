@@ -70,8 +70,8 @@ switch ($method) {
                 case 'add_delivery':
                     $result = $handler->addDelivery(
                         $input['vehicle_license_no'],
-                        $input['date'],
-                        $input['time'],
+                        $input['delivery_date'],
+                        $input['delivery_time'],
                         $input['delivery_man_name']
                     );
                     if ($result) {
@@ -104,8 +104,8 @@ switch ($method) {
                     $result = $handler->updateDelivery(
                         $input['delivery_id'],
                         $input['vehicle_license_no'],
-                        $input['date'],
-                        $input['time'],
+                        $input['delivery_date'],
+                        $input['delivery_time'],
                         $input['delivery_man_name']
                     );
                     echo json_encode(['success' => $result]);

@@ -18,10 +18,9 @@ class OrderManagementHandler {
         }
     
         // Use consistent table name casing
-        // orders = o , deliveries = d
         $sql = "SELECT 
                     order_id,
-    
+                    
                     location,
                     order_date
                 FROM orders
@@ -47,11 +46,11 @@ class OrderManagementHandler {
         $sql = "SELECT 
                     delivery_id,
                     vehicle_license_no,
-                    date,
-                    time,
+                    delivery_date,
+                    delivery_time,
                     delivery_man_name
                 FROM Deliveries
-                ORDER BY date DESC, time DESC";
+                ORDER BY delivery_date DESC, delivery_time DESC";
         
         $result = $this->conn->query($sql);
         $deliveries = [];
@@ -85,7 +84,7 @@ class OrderManagementHandler {
         $stats['recent_orders'] = $result->fetch_assoc()['recent_orders'];
         
         // Recent deliveries (last 7 days)
-        $sql = "SELECT COUNT(*) as recent_deliveries FROM Deliveries WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+        $sql = "SELECT COUNT(*) as recent_deliveries FROM Deliveries WHERE delivery_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
         $result = $this->conn->query($sql);
         $stats['recent_deliveries'] = $result->fetch_assoc()['recent_deliveries'];
         
@@ -109,7 +108,7 @@ class OrderManagementHandler {
     
     // Add new delivery
     public function addDelivery($vehicle_license_no, $date, $time, $delivery_man_name) {
-        $stmt = $this->conn->prepare("INSERT INTO Deliveries (vehicle_license_no, date, time, delivery_man_name) VALUES (?, ?, ?, ?)");
+        $stmt = $this->conn->prepare("INSERT INTO Deliveries (vehicle_license_no, delivery_date, delivery_time, delivery_man_name) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("ssss", $vehicle_license_no, $date, $time, $delivery_man_name);
         
         if ($stmt->execute()) {
@@ -134,7 +133,7 @@ class OrderManagementHandler {
     
     // Update delivery
     public function updateDelivery($delivery_id, $vehicle_license_no, $date, $time, $delivery_man_name) {
-        $stmt = $this->conn->prepare("UPDATE Deliveries SET vehicle_license_no = ?, date = ?, time = ?, delivery_man_name = ? WHERE delivery_id = ?");
+        $stmt = $this->conn->prepare("UPDATE Deliveries SET vehicle_license_no = ?, delivery_date = ?, delivery_time = ?, delivery_man_name = ? WHERE delivery_id = ?");
         $stmt->bind_param("ssssi", $vehicle_license_no, $date, $time, $delivery_man_name, $delivery_id);
         
         $result = $stmt->execute();
@@ -245,13 +244,13 @@ class OrderManagementHandler {
         $stmt = $this->conn->prepare("SELECT 
                     delivery_id,
                     vehicle_license_no,
-                    date,
-                    time,
+                    delivery_date,
+                    delivery_time,
                     delivery_man_name
                 FROM Deliveries
                 WHERE vehicle_license_no LIKE ? 
                    OR delivery_man_name LIKE ?
-                ORDER BY date DESC, time DESC");
+                ORDER BY delivery_date DESC, delivery_time DESC");
         
         $stmt->bind_param("ss", $searchTerm, $searchTerm);
         $stmt->execute();
