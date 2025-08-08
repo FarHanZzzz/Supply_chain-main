@@ -77,7 +77,7 @@ class ProductRecordsHandler {
 
         // pp = packaged product, ppb = packaged product batch, pb = product batch, w = warehouse, f = factory
         $sql = "SELECT 
-        
+                
                     pp.packaged_product_id,
                     pp.product_name,
                     ppb.production_quantity,

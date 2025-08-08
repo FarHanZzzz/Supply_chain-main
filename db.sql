@@ -309,6 +309,7 @@ INSERT INTO Drivers (first_name, last_name, phone_number) VALUES
 ('Lisa', 'Garcia', '333-444-5555'),
 ('Mark', 'Davis', '666-777-8888');
 
+
 INSERT INTO Transports (driver_id, vehicle_type, vehicle_capacity, current_capacity) VALUES
 (1, 'Truck', 5000.00, 0.00),
 (2, 'Van', 2000.00, 0.00),
