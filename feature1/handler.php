@@ -11,6 +11,8 @@ class ProductRecordsHandler {
     
     // Get all crops with their details
     public function getAllCrops() {
+
+        // c = crop , cs = crop sowing, h = harvest, f = farm	
         $sql = "SELECT 
                     c.crop_id,
                     c.crop_name,
@@ -40,6 +42,8 @@ class ProductRecordsHandler {
     
     // Get all harvests with their details
     public function getAllHarvests() {
+
+        // h = harvest, f = farm, cs = crop sowing, c = crop
         $sql = "SELECT 
                     h.harvest_id,
                     h.harvest_name,
@@ -70,6 +74,8 @@ class ProductRecordsHandler {
     
     // Get all packages with their details
     public function getAllPackages() {
+
+        // pp = packaged product, ppb = packaged product batch, pb = product batch, w = warehouse, f = factory
         $sql = "SELECT 
         
                     pp.packaged_product_id,
