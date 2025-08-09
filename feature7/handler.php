@@ -45,6 +45,7 @@ class AnalyticsHandler {
                     COUNT(*) as total_deliveries,
                     SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as on_time_deliveries
                 FROM shipment 
+            
                 WHERE status IN ('delivered', 'in_transit')";
         
         $result = $this->conn->query($sql);

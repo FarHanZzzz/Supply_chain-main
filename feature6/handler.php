@@ -70,6 +70,55 @@ class DocumentManagementHandler {
         return $shipments;
     }
 
+
+
+    // Search documents by term (searches document_number, shipment_destination, driver_name, and document_type)
+    public function searchDocuments($term) {
+        $raw = trim((string)$term);
+        $like = '%' . strtolower($raw) . '%';
+
+        $sql = "SELECT 
+                sd.document_id,
+                sd.shipment_id,
+                sd.document_type,
+                sd.document_number,
+                sd.issue_date,
+                sd.issued_by,
+                sd.file_path,
+                sd.approval_status,
+                sd.notes,
+                s.shipment_destination,
+                s.shipment_date,
+                s.status as shipment_status,
+                t.vehicle_type,
+                CONCAT(d.first_name, ' ', d.last_name) as driver_name
+            FROM Shipping_Documents sd
+            LEFT JOIN Shipments s ON sd.shipment_id = s.shipment_id
+            LEFT JOIN Transports t ON s.transport_id = t.transport_id
+            LEFT JOIN Drivers d ON t.driver_id = d.driver_id
+            WHERE LOWER(sd.document_number) LIKE ?
+               OR LOWER(s.shipment_destination) LIKE ?
+               OR LOWER(CONCAT(d.first_name, ' ', d.last_name)) LIKE ?
+               OR LOWER(sd.document_type) LIKE ?
+            ORDER BY sd.issue_date DESC";
+
+    $stmt = $this->conn->prepare($sql);
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param("ssss", $like, $like, $like, $like);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $documents = [];
+    while ($row = $result->fetch_assoc()) {
+        $documents[] = $row;
+    }
+    $stmt->close();
+    return $documents;
+}
+
+
     // Add a new document
     public function addDocument($data) {
         $stmt = $this->conn->prepare("INSERT INTO Shipping_Documents 

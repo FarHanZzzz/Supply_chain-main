@@ -18,31 +18,38 @@ $handler = new DocumentManagementHandler();
 try {
     switch ($requestMethod) {
         case 'GET':
-            if (isset($_GET['action'])) {
-                switch ($_GET['action']) {
-                    case 'documents':
-                        echo json_encode($handler->getAllDocuments());
-                        break;
-                    case 'document':
-                        if (isset($_GET['id'])) {
-                            echo json_encode($handler->getDocumentById($_GET['id']));
-                        } else {
-                            throw new Exception("Document ID required");
-                        }
-                        break;
-                    case 'shipments':
-                        echo json_encode($handler->getAllShipments());
-                        break;
-                    case 'stats':
-                        echo json_encode($handler->getDocumentStats());
-                        break;
-                    default:
-                        throw new Exception("Invalid action");
+    if (isset($_GET['action'])) {
+        switch ($_GET['action']) {
+            case 'documents':
+                echo json_encode($handler->getAllDocuments());
+                break;
+            case 'document':
+                if (isset($_GET['id'])) {
+                    echo json_encode($handler->getDocumentById($_GET['id']));
+                } else {
+                    throw new Exception("Document ID required");
                 }
-            } else {
-                throw new Exception("Action parameter required");
-            }
-            break;
+                break;
+            case 'shipments':
+                echo json_encode($handler->getAllShipments());
+                break;
+            case 'stats':
+                echo json_encode($handler->getDocumentStats());
+                break;
+            case 'search':
+                    if (isset($_GET['term'])) {
+                        echo json_encode($handler->searchDocuments($_GET['term']));
+                    } else {
+                        echo json_encode(['error' => 'Search term required']);
+                    }
+                    break;
+            default:
+                        throw new Exception("Invalid action");
+                  }
+    } else {
+        throw new Exception("Action parameter required");
+    }
+    break;
             
         case 'POST':
             if (!isset($requestData['action'])) {

@@ -2,6 +2,7 @@
 let currentDocument = null;
 const documentModal = new bootstrap.Modal(document.getElementById('documentModal'));
 const viewModal = new bootstrap.Modal(document.getElementById('viewModal'));
+let searchTimeout;
 
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -16,7 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('searchBtn').addEventListener('click', searchDocuments);
     document.getElementById('statusFilter').addEventListener('change', filterDocuments);
     document.getElementById('typeFilter').addEventListener('change', filterDocuments);
-    document.getElementById('downloadBtn').addEventListener('click', downloadDocument);
+    
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            searchDocuments();
+        }
+    });
+    
+    // Add debouncing for search input
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(searchDocuments, 300);
+    });
 });
 
 // Load document statistics
@@ -218,7 +231,7 @@ function openDocumentModal() {
 }
 
 
-// Edit document - FIXED
+// Edit document
 async function editDocument(documentId) {
     try {
         const response = await fetch(`api.php?action=document&id=${documentId}`);
@@ -226,8 +239,7 @@ async function editDocument(documentId) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         
-        // CHANGE THIS VARIABLE NAME - THIS IS THE CAUSE OF THE ERROR
-        const docData = await response.json(); // Changed from 'document' to 'docData'
+        const docData = await response.json();
         
         if (!docData || !docData.document_id) {
             throw new Error('Document not found');
@@ -236,7 +248,7 @@ async function editDocument(documentId) {
         // Reset form before populating
         document.getElementById('documentForm').reset();
         
-        // Populate form - note: using docData instead of document
+        // Populate form
         document.getElementById('modalTitle').textContent = 'Edit Document';
         document.getElementById('documentId').value = docData.document_id;
         document.getElementById('documentType').value = docData.document_type || '';
@@ -263,6 +275,7 @@ async function editDocument(documentId) {
         alert(`Failed to load document: ${error.message}`);
     }
 }
+
 // View document
 async function viewDocument(documentId) {
     try {
@@ -289,7 +302,6 @@ async function viewDocument(documentId) {
         }
         
         const docData = await response.json();
-        console.log('API response:', docData); // Debugging
         
         // Check if we got valid document data
         if (!docData || typeof docData !== 'object' || !docData.document_id) {
@@ -336,13 +348,7 @@ async function viewDocument(documentId) {
         // Add download functionality if file exists
         if (docData.file_path) {
             document.getElementById('downloadBtn').addEventListener('click', () => {
-                const link = document.createElement('a');
-                link.href = docData.file_path;
-                link.download = docData.file_path.split('/').pop() || 'document';
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                downloadDocument(docData.file_path);
             });
         }
         
@@ -358,21 +364,35 @@ async function viewDocument(documentId) {
     }
 }
 
-
 // Download document
 function downloadDocument(filePath) {
     if (!filePath) {
-        alert('No file path available for download');
+        alert('No file available for download');
         return;
     }
     
-    // Create a temporary link to trigger download
-    const link = document.createElement('a');
-    link.href = filePath;
-    link.download = filePath.split('/').pop() || 'document';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+        // Create a temporary link
+        const link = document.createElement('a');
+        
+        // Handle both absolute and relative paths
+        if (filePath.startsWith('http') || filePath.startsWith('/')) {
+            link.href = filePath;
+        } else {
+            // If it's a relative path, make it absolute
+            link.href = window.location.origin + '/' + filePath;
+        }
+        
+        link.download = filePath.split('/').pop() || 'document';
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Download failed:', error);
+        alert('Failed to download document. Please check the file path.');
+    }
 }
 
 // Save document (add or update)
@@ -458,24 +478,61 @@ async function deleteDocument(documentId) {
     }
 }
 
-// Search documents
-function searchDocuments() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const tableBody = document.getElementById('documentsTableBody');
-    const rows = tableBody.getElementsByTagName('tr');
+// CORRECTED SEARCH DOCUMENTS FUNCTION
+async function searchDocuments() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
     
-    for (let row of rows) {
-        const cells = row.getElementsByTagName('td');
-        let match = false;
+    if (!searchTerm) {
+        // If search is empty, load all documents
+        loadDocuments();
+        return;
+    }
+    
+    try {
+        // Show loading state
+        const tableBody = document.getElementById('documentsTableBody');
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Searching documents...</p>
+                </td>
+            </tr>
+        `;
         
-        for (let cell of cells) {
-            if (cell.textContent.toLowerCase().includes(searchTerm)) {
-                match = true;
-                break;
-            }
+        // Make API call to search endpoint
+        const response = await fetch(`api.php?action=search&term=${encodeURIComponent(searchTerm)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
         
-        row.style.display = match ? '' : 'none';
+        const documents = await response.json();
+        
+        if (!documents || !Array.isArray(documents)) {
+            throw new Error('Invalid data received from server');
+        }
+
+        // Display the search results
+        displayDocuments(documents);
+        
+    } catch (error) {
+        console.error('Search failed:', error);
+        const tableBody = document.getElementById('documentsTableBody');
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>Search Failed</h5>
+                    <p>${error.message}</p>
+                    <button class="btn btn-sm btn-primary" onclick="loadDocuments()">
+                        Reload Documents
+                    </button>
+                </td>
+            </tr>
+        `;
     }
 }
 

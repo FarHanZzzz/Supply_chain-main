@@ -144,6 +144,7 @@ switch ($method) {
                     $result = $handler->deleteTransport($input['transport_id']);
                     echo json_encode(['success' => $result]);
                     break;
+            
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
