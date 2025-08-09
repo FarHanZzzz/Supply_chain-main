@@ -250,7 +250,7 @@ class TransportationPlanningHandler {
         $stats['active_transports'] = $result->fetch_assoc()['active_transports'];
         
         // Available drivers
-        $sql = "SELECT COUNT(*) as available_drivers FROM Drivers";
+        $sql = "SELECT COUNT(*) AS available_drivers FROM Drivers d LEFT JOIN Transports t ON d.driver_id = t.driver_id WHERE t.driver_id IS NULL;";
         $result = $this->conn->query($sql);
         $stats['available_drivers'] = $result->fetch_assoc()['available_drivers'];
         
