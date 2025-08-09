@@ -71,33 +71,40 @@ async function loadTransportationStats() {
 }
 
 // Load drivers for dropdown
-async function loadDrivers() {
+// Load drivers for dropdown (optionally include current driver even if assigned)
+async function loadDrivers({ includeId = null } = {}) {
   try {
-    // Get all drivers
-    const driversRes = await fetch('api.php?action=drivers');
-    const drivers = await driversRes.json();
+    const [driversRes, transportsRes] = await Promise.all([
+      fetch('api.php?action=drivers'),
+      fetch('api.php?action=transports')
+    ]);
+    const [drivers, transports] = [await driversRes.json(), await transportsRes.json()];
 
-    // Get all transports and find used drivers
-    const transportsRes = await fetch('api.php?action=transports');
-    const transports = await transportsRes.json();
     const usedIds = new Set(transports.map(t => String(t.driver_id)));
-
-    // Populate the dropdown, skipping used drivers
     const dropdown = document.getElementById('transportDriverSelect');
     dropdown.innerHTML = '<option value="">Select Driver</option>';
 
     drivers.forEach(driver => {
-      if (!usedIds.has(String(driver.driver_id))) {
-        const opt = document.createElement('option');
-        opt.value = driver.driver_id;
-        opt.textContent = `${driver.driver_name} (${driver.phone_number})`;
-        dropdown.appendChild(opt);
-      }
+      const idStr = String(driver.driver_id);
+      // keep currently assigned driver visible during edit
+      const isIncluded = (includeId != null && idStr === String(includeId)) || !usedIds.has(idStr);
+      if (!isIncluded) return;
+
+      const opt = document.createElement('option');
+      opt.value = driver.driver_id;
+      opt.textContent = `${driver.driver_name} (${driver.phone_number})`;
+      dropdown.appendChild(opt);
     });
+
+    // If still missing (edge case), inject a fallback option
+    if (includeId != null && !Array.from(dropdown.options).some(o => o.value === String(includeId))) {
+      dropdown.add(new Option(`(Current) Driver #${includeId}`, String(includeId)), 1);
+    }
   } catch (err) {
     console.error('Error loading available drivers:', err);
   }
 }
+
 
 // Load harvest batches for dropdown
 async function loadHarvestBatches() {
@@ -245,11 +252,11 @@ function openShipmentModal() {
 }
 
 function openTransportModal() {
-    currentEditingTransport = null;
-    document.getElementById('transportModalTitle').textContent = 'Add New Transport';
-    document.getElementById('transportForm').reset();
-    loadDrivers();
-    document.getElementById('transportModal').style.display = 'block';
+  currentEditingTransport = null;
+  document.getElementById('transportModalTitle').textContent = 'Add New Transport';
+  document.getElementById('transportForm').reset();
+  loadDrivers(); // no includeId for add
+  document.getElementById('transportModal').style.display = 'block';
 }
 
 function closeShipmentModal() {
@@ -373,12 +380,14 @@ async function editTransport(transportId, driverId, vehicleType, vehicleCapacity
   document.getElementById('transportModalTitle').textContent = 'Edit Transport';
   document.getElementById('transportForm').reset();
 
-  await loadDrivers(); // repopulates the driver dropdown (may filter out others)
-
+  // populate drivers FIRST (including the current one), then set value
+  await loadDrivers({ includeId: driverId });
   document.getElementById('transportDriverSelect').value = String(driverId ?? '');
+
+  // set the rest (with safe defaults)
   document.getElementById('vehicleType').value = vehicleType ?? '';
   document.getElementById('vehicleCapacity').value = vehicleCapacity ?? '';
-  document.getElementById('currentCapacity').value = currentCapacity ?? '';
+  document.getElementById('currentCapacity').value = (currentCapacity ?? 0);
 
   document.getElementById('transportModal').style.display = 'block';
 }
