@@ -307,7 +307,14 @@ INSERT INTO Package_Products (packaged_product_batch_id, product_name) VALUES
 INSERT INTO Drivers (first_name, last_name, phone_number) VALUES
 ('Tom', 'Anderson', '777-888-9999'),
 ('Lisa', 'Garcia', '333-444-5555'),
-('Mark', 'Davis', '666-777-8888');
+('Mark', 'Davis', '666-777-8888'),
+('Emily', 'Johnson', '222-333-4444'),
+('James', 'Brown', '555-666-7777'),
+('Sarah', 'Miller', '888-999-0000'),
+('David', 'Wilson', '111-222-3333'),
+('Olivia', 'Martinez', '444-555-6666'),
+('Michael', 'Taylor', '999-000-1111'),
+('Sophia', 'Harris', '123-456-7890');
 
 
 INSERT INTO Transports (driver_id, vehicle_type, vehicle_capacity, current_capacity) VALUES
