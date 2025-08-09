@@ -141,7 +141,7 @@ function displayShipments(shipments) {
             <td>${productInfo}</td>
             <td>
                 <button class="btn-view" onclick="viewShipment(${shipment.shipment_id})">View</button>
-                <button class="btn-edit" onclick="editShipment(${shipment.shipment_id}, ${shipment.transport_id}, '${shipment.shipment_date}', '${shipment.shipment_destination}', '${shipment.status}')">Edit</button>
+                <button class="btn-edit" onclick="editShipment(${shipment.shipment_id},${shipment.transport_id ?? 'null'},'${shipment.shipment_date}','${shipment.shipment_destination?.replace(/'/g, "\\'") || ''}','${shipment.status}',${shipment.harvest_batch_id ?? 'null'},${shipment.packaged_product_batch_id ?? 'null'})">Edit</button>
                 <button class="btn-delete" onclick="deleteShipment(${shipment.shipment_id})">Delete</button>
             </td>
         `;
@@ -261,15 +261,46 @@ function closeTransportModal() {
 }
 
 // Load available transports for shipment planning
-async function loadAvailableTransports() {
+// Load available transports for shipment planning, with optional currently selected ID
+async function loadAvailableTransports(currentTransportId = null) {
     try {
         const response = await fetch('api.php?action=available_transports');
         const transports = await response.json();
-        populateTransportDropdown(transports);
+
+        const dropdown = document.getElementById('transportSelect');
+        dropdown.innerHTML = '<option value="">Select Transport</option>';
+
+        let hasCurrent = false;
+        transports.forEach(t => {
+        if (String(t.transport_id) === String(currentTransportId)) hasCurrent = true;
+        const opt = document.createElement('option');
+        opt.value = t.transport_id;
+        opt.textContent = `${t.vehicle_type} - ${t.driver_name} (${t.vehicle_capacity} kg)`;
+        dropdown.appendChild(opt);
+        });
+
+        // If editing and current transport isn't in "available", fetch all and add it
+        if (currentTransportId && !hasCurrent) {
+        const allRes = await fetch('api.php?action=transports');
+        const allTransports = await allRes.json();
+        const cur = allTransports.find(x => String(x.transport_id) === String(currentTransportId));
+        if (cur) {
+            const opt = document.createElement('option');
+            opt.value = cur.transport_id;
+            opt.textContent = `${cur.vehicle_type} - ${cur.driver_name} (${cur.vehicle_capacity} kg)`;
+            // put it at the top so it's visible
+            dropdown.insertBefore(opt, dropdown.firstChild.nextSibling);
+        }
+        }
+
+        if (currentTransportId) {
+        dropdown.value = String(currentTransportId);
+        }
     } catch (error) {
         console.error('Error loading available transports:', error);
     }
 }
+
 
 // Populate transport dropdown
 function populateTransportDropdown(transports) {
@@ -285,26 +316,73 @@ function populateTransportDropdown(transports) {
 }
 
 // Edit functions
-function editShipment(shipmentId, transportId, shipmentDate, destination, status) {
-    currentEditingShipment = shipmentId;
-    document.getElementById('shipmentModalTitle').textContent = 'Edit Shipment';
-    document.getElementById('transportSelect').value = transportId;
-    document.getElementById('shipmentDate').value = shipmentDate;
-    document.getElementById('shipmentDestination').value = destination;
-    document.getElementById('shipmentStatus').value = status;
-    loadAvailableTransports();
-    document.getElementById('shipmentModal').style.display = 'block';
+function toYMD(d) {
+    // ensure yyyy-mm-dd for <input type="date">
+    // if your string is already yyyy-mm-dd, this returns it as-is
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    // fallback: try Date()
+    const dt = new Date(d);
+    if (!isNaN(dt)) {
+        const y = dt.getFullYear();
+        const mm = String(dt.getMonth()+1).padStart(2,'0');
+        const dd = String(dt.getDate()).padStart(2,'0');
+        return `${y}-${mm}-${dd}`;
+    }
+    return ''; // let the control stay empty if unknown
 }
 
-function editTransport(transportId, driverId, vehicleType, vehicleCapacity, currentCapacity) {
-    currentEditingTransport = transportId;
-    document.getElementById('transportModalTitle').textContent = 'Edit Transport';
-    document.getElementById('transportDriverSelect').value = driverId;
-    document.getElementById('vehicleType').value = vehicleType;
-    document.getElementById('vehicleCapacity').value = vehicleCapacity;
-    document.getElementById('currentCapacity').value = currentCapacity;
-    document.getElementById('transportModal').style.display = 'block';
+async function editShipment(
+  shipmentId,
+  transportId,
+  shipmentDate,
+  destination,
+  status,
+  harvestBatchId = null,
+  packagedBatchId = null
+) {
+  currentEditingShipment = shipmentId;
+  document.getElementById('shipmentModalTitle').textContent = 'Edit Shipment';
+  document.getElementById('shipmentForm').reset();
+
+  // Build the dropdowns first, then set values
+  await loadAvailableTransports(transportId);
+
+  // Ensure harvest & packaged lists are loaded, then set their values
+  await loadHarvestBatches();
+  if (harvestBatchId) {
+    document.getElementById('harvestBatchSelect').value = String(harvestBatchId);
+  }
+
+  await loadPackagedBatches();
+  if (packagedBatchId) {
+    document.getElementById('packagedBatchSelect').value = String(packagedBatchId);
+  }
+
+  // Set the simple fields
+  document.getElementById('shipmentDate').value = toYMD(shipmentDate);
+  document.getElementById('shipmentDestination').value = destination ?? '';
+  document.getElementById('shipmentStatus').value = status ?? '';
+
+  document.getElementById('shipmentModal').style.display = 'block';
 }
+
+
+async function editTransport(transportId, driverId, vehicleType, vehicleCapacity, currentCapacity) {
+  currentEditingTransport = transportId;
+  document.getElementById('transportModalTitle').textContent = 'Edit Transport';
+  document.getElementById('transportForm').reset();
+
+  await loadDrivers(); // repopulates the driver dropdown (may filter out others)
+
+  document.getElementById('transportDriverSelect').value = String(driverId ?? '');
+  document.getElementById('vehicleType').value = vehicleType ?? '';
+  document.getElementById('vehicleCapacity').value = vehicleCapacity ?? '';
+  document.getElementById('currentCapacity').value = currentCapacity ?? '';
+
+  document.getElementById('transportModal').style.display = 'block';
+}
+
 
 // View shipment details
 function viewShipment(shipmentId) {
