@@ -485,7 +485,6 @@ async function searchShipments() {
         loadShipments();
         return;
     }
-    
     try {
         const response = await fetch(`api.php?action=search&term=${encodeURIComponent(searchTerm)}`);
         const shipments = await response.json();

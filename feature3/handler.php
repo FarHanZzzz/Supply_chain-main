@@ -193,47 +193,75 @@ class TransportationPlanningHandler {
     }
     
     // Search shipments
-    public function searchShipments($searchTerm) {
-        $searchTerm = '%' . $searchTerm . '%';
-        $stmt = $this->conn->prepare("SELECT 
-                    s.shipment_id,
-                    s.shipment_date,
-                    s.shipment_destination,
-                    s.status,
-                    t.vehicle_type,
-                    t.vehicle_capacity,
-                    t.current_capacity,
-                    CONCAT(d.first_name, ' ', d.last_name) as driver_name,
-                    d.phone_number as driver_phone,
-                    h.harvest_name,
-                    pp.product_name
-                FROM Shipments s
-                JOIN Transports t ON s.transport_id = t.transport_id
-                JOIN Drivers d ON t.driver_id = d.driver_id
-                LEFT JOIN Harvest_Batches hb ON s.harvest_batch_id = hb.harvest_batch_id
-                LEFT JOIN Harvests h ON hb.harvest_id = h.harvest_id
-                LEFT JOIN Packaged_Product_Batches ppb ON s.packaged_product_batch_id = ppb.packaged_product_batch_id
-                LEFT JOIN Package_Products pp ON ppb.packaged_product_batch_id = pp.packaged_product_batch_id
-                WHERE s.shipment_destination LIKE ? 
-                   OR s.status LIKE ? 
-                   OR t.vehicle_type LIKE ?
-                   OR CONCAT(d.first_name, ' ', d.last_name) LIKE ?
-                ORDER BY s.shipment_date DESC");
-        
-        $stmt->bind_param("ssss", $searchTerm, $searchTerm, $searchTerm, $searchTerm);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $shipments = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $shipments[] = $row;
-            }
-        }
-        
-        $stmt->close();
-        return $shipments;
+    public function searchShipments($term) {
+    $raw = trim((string)$term);
+    $like = '%' . mb_strtolower($raw, 'UTF-8') . '%';
+
+    $digits = preg_replace('/\D+/', '', $raw);
+    $digitsTrim = ltrim($digits, '0');
+    if ($digitsTrim === '') { $digitsTrim = $digits; }
+
+    if ($digits !== '') {
+        // Numeric-ish: search by ID formats only
+        $likeCast = '%' . $digitsTrim . '%';
+        $likePad  = '%' . $digits . '%'; // zero-padded
+        $likeFull = '%' . $raw . '%';    // e.g., "SH-000123"
+
+        $sql = "
+        SELECT 
+            s.shipment_id, s.shipment_date, s.shipment_destination, s.status,
+            t.vehicle_type, t.vehicle_capacity, t.current_capacity,
+            CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
+            d.phone_number AS driver_phone, h.harvest_name, pp.product_name
+        FROM Shipments s
+        JOIN Transports t ON s.transport_id = t.transport_id
+        JOIN Drivers d    ON t.driver_id = d.driver_id
+        LEFT JOIN Harvest_Batches hb ON s.harvest_batch_id = hb.harvest_batch_id
+        LEFT JOIN Harvests h         ON hb.harvest_id = h.harvest_id
+        LEFT JOIN Packaged_Product_Batches ppb ON s.packaged_product_batch_id = ppb.packaged_product_batch_id
+        LEFT JOIN Package_Products pp          ON ppb.packaged_product_batch_id = pp.packaged_product_batch_id
+        WHERE CAST(s.shipment_id AS CHAR) LIKE ?
+           OR LPAD(s.shipment_id, 6, '0') LIKE ?
+           OR CONCAT('SH-', LPAD(s.shipment_id, 6, '0')) LIKE ?
+        GROUP BY s.shipment_id
+        ORDER BY s.shipment_date DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("sss", $likeCast, $likePad, $likeFull);
+    } else {
+        // Text: destination OR driver name OR vehicle type OR status (all case-insensitive)
+        $sql = "
+        SELECT 
+            s.shipment_id, s.shipment_date, s.shipment_destination, s.status,
+            t.vehicle_type, t.vehicle_capacity, t.current_capacity,
+            CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
+            d.phone_number AS driver_phone, h.harvest_name, pp.product_name
+        FROM Shipments s
+        JOIN Transports t ON s.transport_id = t.transport_id
+        JOIN Drivers d    ON t.driver_id = d.driver_id
+        LEFT JOIN Harvest_Batches hb ON s.harvest_batch_id = hb.harvest_batch_id
+        LEFT JOIN Harvests h         ON hb.harvest_id = h.harvest_id
+        LEFT JOIN Packaged_Product_Batches ppb ON s.packaged_product_batch_id = ppb.packaged_product_batch_id
+        LEFT JOIN Package_Products pp          ON ppb.packaged_product_batch_id = pp.packaged_product_batch_id
+        WHERE LOWER(s.shipment_destination) LIKE ?
+           OR LOWER(CONCAT(d.first_name, ' ', d.last_name)) LIKE ?
+           OR LOWER(t.vehicle_type) LIKE ?
+           OR LOWER(s.status) LIKE ?
+        GROUP BY s.shipment_id
+        ORDER BY s.shipment_date DESC";
+        $stmt = $this->conn->prepare($sql);
+        // 4 params here
+        $stmt->bind_param("ssss", $like, $like, $like, $like);
     }
+
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $rows = [];
+    while ($r = $res->fetch_assoc()) $rows[] = $r;
+    $stmt->close();
+    return $rows;
+}
+
+
     
     // Get transportation statistics
     public function getTransportationStats() {
