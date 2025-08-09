@@ -1,11 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shipping Document Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             /* Dark Jungle Green theme */
@@ -40,6 +41,8 @@
         body {
     /* Dark background behind white container */
 
+   /* Dark background behind white container */
+
             margin: 0;
             font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background:
@@ -58,8 +61,7 @@
 
 
         }
-
-           /* White “plane” container for everything */
+                   /* White “plane” container for everything */
         .container-main {
             max-width: 1400px;
             width: 100%;
@@ -69,8 +71,12 @@
             padding: 0; /* we'll control padding inside */
             overflow: hidden;
         }
-
-
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: #333;
+        }
+        
         .header {
             background:
                 radial-gradient(140% 120% at 100% 0%, #2F4A43, transparent 60%),
@@ -98,7 +104,7 @@
             margin-right: 12px;
             font-size: 2.2rem;
         }
-
+        
         /* Content area padding */
         .content {
             padding: 30px 40px 40px 40px;
@@ -140,28 +146,99 @@
             background-color: #e2e6ea;
             color: #343a40;
         }
+        
+        .section{ margin-bottom: 40px; }
+        .section h2{
+            font-size: clamp(1.2rem, 2.6vw, 1.6rem);
+            color: var(--primary-600);
+            margin-bottom: 16px;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
 
-        /* Stats card backgrounds and shadows */
+
+
+    /* Stats card backgrounds and shadows */
         .stat-card {
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-            margin-bottom: 20px;
-            color: white;
-            padding: 20px;
-            font-weight: 600;
+        position: relative;
+        background: linear-gradient(180deg, #ffffff, #F6FAF8);
+        border: 1px solid var(--border);
+        color: var(--ink);
+        padding: 24px 22px;
+        border-radius: 18px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        -webkit-text-fill-color: #079e69;
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        .stat-card::before{
+            content:""; position:absolute; inset:auto auto -30% -30%;
+            width: 220px; height: 220px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(159,230,201,.4), transparent 60%);
+            filter: blur(8px);
+        }
+        .stat-number{
+        font-size: 2.3rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+        background: linear-gradient(90deg, #9FE6C9, #1f8577);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .stat-label{
+        font-size: 1rem; color: var(--muted); font-weight: 600;
         }
 
-        .stat-card.total { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .stat-card.approved { background: linear-gradient(135deg, #27ae60, #219653); }
-        .stat-card.pending { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .stat-card.rejected { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        .controls{
+            display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; align-items: center;
+            }
+        
+           /* Inputs */
+    .search-box,
+    .controls input[type="text"],
+    .controls input[type="number"]{
+      padding: 12px 14px;
+      border: 1.8px solid #DEEAE6;
+      border-radius: 12px;
+      font-size: 14px;
+      width: 300px;
+      transition: var(--transition);
+      background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+      color: var(--ink);
+    }
+    .controls input[type="number"]{ width: 360px; max-width: 100%; }
+    .search-box:focus,
+    .controls input[type="text"]:focus,
+    .controls input[type="number"]:focus{
+      outline: none;
+      border-color: var(--primary-600);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+        .close{
+      color: #889692; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1;
+    }
+    .close:hover{ color: #13201D; }
+
+    .form-group{ margin-bottom: 16px; }
+    .form-group label{
+      display: block; margin-bottom: 6px; font-weight: 700; color: #223A36; font-size: .95rem;
+    }
+    .form-group input,
+    .form-group select{
+      width: 100%;
+      padding: 12px 12px;
+      border: 1.8px solid #DEEAE6;
+      border-radius: 12px;
+      font-size: 14px;
+      transition: var(--transition);
+      background: #fff;
+      color: var(--ink);
+    }
+    .form-group input:focus,
 
         /* Document Table */
         .document-table {
@@ -174,7 +251,7 @@
         /* Table header with dark gradient */
         .table thead th {
             background: linear-gradient(120deg, #1A2421 0%, #20332E 100%);
-            color: #f7fffd;
+            color: #ffffff;
             font-weight: 700;
         }
 
@@ -214,14 +291,14 @@
             align-items: center;
             justify-content: center;
             margin: 0 3px;
-            color: white;
+            color: rgb(255, 255, 255);
             border: none;
             cursor: pointer;
             font-size: 16px;
         }
 
         .btn-view { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .btn-edit { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .btn-edit { background: linear-gradient(135deg, #12f386, #079e69); }
         .btn-delete { background: linear-gradient(135deg, #e74c3c, #c0392b); }
 
         /* Modal header */
@@ -239,12 +316,14 @@
 
         /* Search container */
         .search-container {
-        background: white;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+    
         }
+        
     </style>
     </head>
     <body>
@@ -335,144 +414,124 @@
     <!-- Add/Edit Document Modal -->
     <div class="modal fade" id="documentModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title" id="modalTitle">Add New Document</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add New Document</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="documentForm">
+                        <input type="hidden" id="documentId">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Document Type</label>
+                                <select class="form-select" id="documentType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Invoice">Invoice</option>
+                                    <option value="Bill of Lading">Bill of Lading</option>
+                                    <option value="Customs Declaration">Customs Declaration</option>
+                                    <option value="Delivery Note">Delivery Note</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Document Number</label>
+                                <input type="text" class="form-control" id="documentNumber" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Shipment</label>
+                                <select class="form-select" id="shipmentId" required>
+                                    <option value="">Select Shipment</option>
+                                    <!-- Shipments will be populated by JavaScript -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Issue Date</label>
+                                <input type="date" class="form-control" id="issueDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Issued By</label>
+                                <input type="text" class="form-control" id="issuedBy" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="approvalStatus" required>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">File Path</label>
+                                <input type="text" class="form-control" id="filePath" placeholder="/documents/invoice-123.pdf">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveDocumentBtn">Save Document</button>
+                </div>
             </div>
-            <div class="modal-body">
-            <form id="documentForm">
-                <input type="hidden" id="documentId" />
-                <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label class="form-label">Document Type</label>
-                    <select class="form-select" id="documentType" required>
-                    <option value="">Select Type</option>
-                    <option value="Invoice">Invoice</option>
-                    <option value="Bill of Lading">Bill of Lading</option>
-                    <option value="Customs Declaration">Customs Declaration</option>
-                    <option value="Delivery Note">Delivery Note</option>
-                    <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Document Number</label>
-                    <input type="text" class="form-control" id="documentNumber" required />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Shipment</label>
-                    <select class="form-select" id="shipmentId" required>
-                    <option value="">Select Shipment</option>
-                    <!-- Shipments will be populated by JavaScript -->
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Issue Date</label>
-                    <input type="date" class="form-control" id="issueDate" required />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Issued By</label>
-                    <input type="text" class="form-control" id="issuedBy" required />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" id="approvalStatus" required>
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
-                    </select>
-                </div>
-                <div class="col-md-12">
-                    <label class="form-label">File Path</label>
-                    <input
-                    type="text"
-                    class="form-control"
-                    id="filePath"
-                    placeholder="/documents/invoice-123.pdf"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-control" id="notes" rows="3"></textarea>
-                </div>
-                </div>
-            </form>
-            </div>
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                Cancel
-            </button>
-            <button type="button" class="btn btn-primary" id="saveDocumentBtn">
-                Save Document
-            </button>
-            </div>
-        </div>
         </div>
     </div>
-
+    
     <!-- View Document Modal -->
     <div class="modal fade" id="viewModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title">Document Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-            <div class="row mb-4">
-                <div class="col-md-8">
-                <h4 id="viewDocumentType"></h4>
-                <p class="mb-1">
-                    <strong>Document Number:</strong> <span id="viewDocumentNumber"></span>
-                </p>
-                <p class="mb-1">
-                    <strong>Status:</strong> <span class="status-badge" id="viewStatus"></span>
-                </p>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Document Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="col-md-4 text-end">
-                <button class="btn btn-primary" id="downloadBtn">
-                    <i class="fas fa-download me-1"></i> Download
-                </button>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <h4 id="viewDocumentType"></h4>
+                            <p class="mb-1"><strong>Document Number:</strong> <span id="viewDocumentNumber"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span class="status-badge" id="viewStatus"></span></p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-primary" id="downloadBtn">
+                                <i class="fas fa-download me-1"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Shipment Information</h6>
+                            <p class="mb-1"><strong>Destination:</strong> <span id="viewDestination"></span></p>
+                            <p class="mb-1"><strong>Shipment Date:</strong> <span id="viewShipmentDate"></span></p>
+                            <p class="mb-1"><strong>Driver:</strong> <span id="viewDriver"></span></p>
+                            <p class="mb-1"><strong>Vehicle:</strong> <span id="viewVehicle"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Document Details</h6>
+                            <p class="mb-1"><strong>Issue Date:</strong> <span id="viewIssueDate"></span></p>
+                            <p class="mb-1"><strong>Issued By:</strong> <span id="viewIssuedBy"></span></p>
+                            <p class="mb-1"><strong>File:</strong> <span id="viewFilePath"></span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Notes</h6>
+                        <p id="viewNotes" class="p-3 bg-light rounded"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
-
-            <div class="row mb-4">
-                <div class="col-md-6">
-                <h6>Shipment Information</h6>
-                <p class="mb-1">
-                    <strong>Destination:</strong> <span id="viewDestination"></span>
-                </p>
-                <p class="mb-1">
-                    <strong>Shipment Date:</strong> <span id="viewShipmentDate"></span>
-                </p>
-                <p class="mb-1"><strong>Driver:</strong> <span id="viewDriver"></span></p>
-                <p class="mb-1"><strong>Vehicle:</strong> <span id="viewVehicle"></span></p>
-                </div>
-                <div class="col-md-6">
-                <h6>Document Details</h6>
-                <p class="mb-1"><strong>Issue Date:</strong> <span id="viewIssueDate"></span></p>
-                <p class="mb-1"><strong>Issued By:</strong> <span id="viewIssuedBy"></span></p>
-                <p class="mb-1"><strong>File:</strong> <span id="viewFilePath"></span></p>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <h6>Notes</h6>
-                <p id="viewNotes" class="p-3 bg-light rounded"></p>
-            </div>
-            </div>
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                Close
-            </button>
-            </div>
-        </div>
         </div>
     </div>
-
-    <!-- Bootstrap JS Bundle -->
+    
+    <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Your custom JS -->
     <script src="script.js"></script>
-    </body>
-    </html>
+</body>
+</html>
