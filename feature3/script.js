@@ -72,13 +72,31 @@ async function loadTransportationStats() {
 
 // Load drivers for dropdown
 async function loadDrivers() {
-    try {
-        const response = await fetch('api.php?action=drivers');
-        const drivers = await response.json();
-        populateDriverDropdown(drivers);
-    } catch (error) {
-        console.error('Error loading drivers:', error);
-    }
+  try {
+    // Get all drivers
+    const driversRes = await fetch('api.php?action=drivers');
+    const drivers = await driversRes.json();
+
+    // Get all transports and find used drivers
+    const transportsRes = await fetch('api.php?action=transports');
+    const transports = await transportsRes.json();
+    const usedIds = new Set(transports.map(t => String(t.driver_id)));
+
+    // Populate the dropdown, skipping used drivers
+    const dropdown = document.getElementById('transportDriverSelect');
+    dropdown.innerHTML = '<option value="">Select Driver</option>';
+
+    drivers.forEach(driver => {
+      if (!usedIds.has(String(driver.driver_id))) {
+        const opt = document.createElement('option');
+        opt.value = driver.driver_id;
+        opt.textContent = `${driver.driver_name} (${driver.phone_number})`;
+        dropdown.appendChild(opt);
+      }
+    });
+  } catch (err) {
+    console.error('Error loading available drivers:', err);
+  }
 }
 
 // Load harvest batches for dropdown
@@ -180,22 +198,14 @@ function getStatusClass(status) {
 
 // Populate driver dropdown
 function populateDriverDropdown(drivers) {
-    const dropdown = document.getElementById('driverSelect');
-    const transportDriverSelect = document.getElementById('transportDriverSelect');
-    
+    const dropdown = document.getElementById('transportDriverSelect');  
     dropdown.innerHTML = '<option value="">Select Driver</option>';
-    transportDriverSelect.innerHTML = '<option value="">Select Driver</option>';
     
     drivers.forEach(driver => {
-        const option1 = document.createElement('option');
-        option1.value = driver.driver_id;
-        option1.textContent = `${driver.driver_name} (${driver.phone_number})`;
-        dropdown.appendChild(option1);
-        
-        const option2 = document.createElement('option');
-        option2.value = driver.driver_id;
-        option2.textContent = `${driver.driver_name} (${driver.phone_number})`;
-        transportDriverSelect.appendChild(option2);
+        const option = document.createElement('option');
+        option.value = driver.driver_id;
+        option.textContent = `${driver.driver_name} (${driver.phone_number})`;
+        dropdown.appendChild(option);
     });
 }
 
@@ -238,6 +248,7 @@ function openTransportModal() {
     currentEditingTransport = null;
     document.getElementById('transportModalTitle').textContent = 'Add New Transport';
     document.getElementById('transportForm').reset();
+    loadDrivers();
     document.getElementById('transportModal').style.display = 'block';
 }
 
