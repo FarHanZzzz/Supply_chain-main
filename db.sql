@@ -83,15 +83,14 @@ CREATE TABLE Warehouses (
 );
 
 CREATE TABLE Harvest_Batches (
-    harvest_batch_id INT AUTO_INCREMENT PRIMARY KEY,
-    harvest_id INT NOT NULL,
-    warehouse_id INT NOT NULL,
-    batch_number VARCHAR(100) UNIQUE,
-    quantity DECIMAL(10,2),
-    status VARCHAR(50),
-    storage_date DATE,
-    FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE 
+    HarvestID INT NOT NULL,
+    HarvestBatchID INT NOT NULL,
+    Quantity DECIMAL(10,2) NOT NULL,
+    Unit VARCHAR(50) NOT NULL,
+    PRIMARY KEY (HarvestID, HarvestBatchID),
+    FOREIGN KEY (HarvestID) REFERENCES Harvest(HarvestID)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 CREATE TABLE Owners (
