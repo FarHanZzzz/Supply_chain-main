@@ -605,15 +605,15 @@ function closeSowingModal() {
     document.getElementById('sowingModal').style.display = 'none';
 }
 
-function editSowing(harvestId, cropId, plantDate, harvestDate) {
-    currentEditingSowing = { harvestId, cropId };
-    document.getElementById('sowingModalTitle').textContent = 'Edit Sowing';
-    document.getElementById('sowingCropSelect').value = cropId;
-    document.getElementById('sowingHarvestSelect').value = harvestId;
-    document.getElementById('plantDate').value = plantDate;
-    document.getElementById('sowingHarvestDate').value = harvestDate;
-    document.getElementById('sowingModal').style.display = 'block';
-    populateSowingDropdowns();
+async function editSowing(harvestId, cropId, plantDate, sowHarvestDate){
+  currentEditingSowing = { harvestId, cropId };
+  document.getElementById('sowingModalTitle').textContent='Edit Sowing';
+  document.getElementById('plantDate').value = plantDate;
+  document.getElementById('sowingHarvestDate').value = sowHarvestDate;
+  document.getElementById('sowingModal').style.display='block';
+  await populateSowingDropdowns();
+  document.getElementById('sowingCropSelect').value = String(cropId);
+  document.getElementById('sowingHarvestSelect').value = String(harvestId);
 }
 
 
