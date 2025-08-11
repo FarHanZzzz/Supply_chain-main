@@ -81,6 +81,7 @@ class ProductRecordsHandler {
                 
                     pp.packaged_product_id,
                     pp.product_name,
+                    pp.packaged_product_batch_id,  -- ADD THIS
                     ppb.production_quantity,
                     pb.production_date,
                     w.warehouse_name,

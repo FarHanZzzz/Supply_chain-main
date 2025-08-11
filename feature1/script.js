@@ -137,7 +137,12 @@ function displayPackages(packages) {
             <td>${pkg.warehouse_name || 'N/A'}</td>
             <td>${pkg.factory_name || ''}</td>
             <td>
-                <button class="btn-edit" onclick="editPackage(${pkg.packaged_product_id}, '${escapeHtml(pkg.product_name)}')">Edit</button>
+                <button class="btn-edit" 
+                    onclick="editPackage(
+                    ${pkg.packaged_product_id}, 
+                    '${escapeHtml(pkg.product_name)}',
+                    ${pkg.packaged_product_batch_id}  // NEW PARAM
+                    )">Edit</button>
                 <button class="btn-delete" onclick="deletePackage(${pkg.packaged_product_id})">Delete</button>
             </td>
         `;
@@ -230,13 +235,18 @@ function editHarvest(id, name, type, qty, life, farmId){
   loadFarms().then(()=>{ document.getElementById('farmSelect').value = String(farmId); });
 }
 
-function editPackage(packageId, productName) {
+function editPackage(packageId, productName, batchId) {
     currentEditingItem = packageId;
     currentEditingType = 'package';
     document.getElementById('packageModalTitle').textContent = 'Edit Package';
     document.getElementById('productName').value = productName;
     document.getElementById('packageModal').style.display = 'block';
+
+    // Ensure batches are loaded, then set the dropdown
+    loadPackagedProductBatches().then(() => {document.getElementById('batchSelect').value = String(batchId);
+    });
 }
+
 
 // Save functions
 async function saveCrop() {
