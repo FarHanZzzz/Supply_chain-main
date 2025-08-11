@@ -108,7 +108,14 @@ function displayHarvests(harvests) {
             <td>${harvest.farm_name || ''}</td>
             
             <td>
-                <button class="btn-edit" onclick="editHarvest(${harvest.harvest_id}, '${escapeHtml(harvest.harvest_name)}', '${escapeHtml(harvest.harvest_type)}', ${harvest.harvest_quantity}, '${escapeHtml(harvest.harvest_shelf_life)}')">Edit</button>
+                <button class="btn-edit" onclick="editHarvest(
+                    ${harvest.harvest_id},
+                    '${escapeHtml(harvest.harvest_name)}',
+                    '${escapeHtml(harvest.harvest_type)}',
+                     ${harvest.harvest_quantity},
+                    '${escapeHtml(harvest.harvest_shelf_life)}',
+                     ${harvest.farm_id}
+                     )">Edit</button>
                 <button class="btn-delete" onclick="deleteHarvest(${harvest.harvest_id})">Delete</button>
             </td>
         `;
@@ -210,15 +217,17 @@ function editCrop(cropId, cropName, cropType) {
     document.getElementById('cropModal').style.display = 'block';
 }
 
-function editHarvest(harvestId, harvestName, harvestType, harvestQuantity, harvestShelfLife) {
-    currentEditingItem = harvestId;
-    currentEditingType = 'harvest';
-    document.getElementById('harvestModalTitle').textContent = 'Edit Harvest';
-    document.getElementById('harvestName').value = harvestName;
-    document.getElementById('harvestType').value = harvestType;
-    document.getElementById('harvestQuantity').value = harvestQuantity;
-    document.getElementById('harvestShelfLife').value = harvestShelfLife;
-    document.getElementById('harvestModal').style.display = 'block';
+// editHarvest:
+function editHarvest(id, name, type, qty, life, farmId){
+  currentEditingItem = id; currentEditingType='harvest';
+  document.getElementById('harvestModalTitle').textContent='Edit Harvest';
+  document.getElementById('harvestName').value = name;
+  document.getElementById('harvestType').value = type;
+  document.getElementById('harvestQuantity').value = qty;
+  document.getElementById('harvestShelfLife').value = life;
+  document.getElementById('harvestModal').style.display='block';
+  // ensure farms are loaded, then set:
+  loadFarms().then(()=>{ document.getElementById('farmSelect').value = String(farmId); });
 }
 
 function editPackage(packageId, productName) {

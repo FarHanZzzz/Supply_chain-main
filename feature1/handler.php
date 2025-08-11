@@ -50,6 +50,7 @@ class ProductRecordsHandler {
                     h.harvest_type,
                     h.harvest_quantity,
                     h.harvest_shelf_life,
+                    h.farm_id,
                     f.farm_name,
                     c.crop_name,
                     cs.plant_date,
