@@ -620,45 +620,101 @@ async function editSowing(harvestId, cropId, plantDate, sowHarvestDate){
 
 
 async function saveSowing() {
-    const cropId = document.getElementById('sowingCropSelect').value;
-    const harvestId = document.getElementById('sowingHarvestSelect').value;
-    const plantDate = document.getElementById('plantDate').value;
-    const harvestDate = document.getElementById('sowingHarvestDate').value;
-    if (!cropId || !harvestId || !plantDate || !harvestDate) {
-        alert('Please fill in all required fields');
-        return;
-    }
-    const data = {
-        action: currentEditingSowing ? 'update_crop_sowing' : 'add_crop_sowing',
-        crop_id: parseInt(cropId),
-        harvest_id: parseInt(harvestId),
-        plant_date: plantDate,
-        harvest_date: harvestDate
-    };
-    if (currentEditingSowing) {
-        data.crop_id = currentEditingSowing.cropId;
-        data.harvest_id = currentEditingSowing.harvestId;
-    }
-    try {
-        const response = await fetch('api.php', {
-            method: currentEditingSowing ? 'PUT' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+  const cropIdNew = parseInt(document.getElementById('sowingCropSelect').value);
+  const harvestIdNew = parseInt(document.getElementById('sowingHarvestSelect').value);
+  const plantDate = document.getElementById('plantDate').value;
+  const harvestDate = document.getElementById('sowingHarvestDate').value;
+
+  if (!cropIdNew || !harvestIdNew || !plantDate || !harvestDate) {
+    alert('Please fill in all required fields');
+    return;
+  }
+
+  const isEditing = !!currentEditingSowing;
+
+  try {
+    if (isEditing) {
+      const cropIdOld = currentEditingSowing.cropId;
+      const harvestIdOld = currentEditingSowing.harvestId;
+      const pairChanged = (cropIdNew !== cropIdOld) || (harvestIdNew !== harvestIdOld);
+
+      if (pairChanged) {
+        // 1) delete the old pair
+        const delRes = await fetch('api.php', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_crop_sowing',
+            harvest_id: harvestIdOld,
+            crop_id: cropIdOld
+          })
         });
-        if (!response.ok) throw new Error('Network response was not ok');
-        const result = await response.json();
-        if (result.success) {
-            closeSowingModal();
-            loadSowings();
-            alert(currentEditingSowing ? 'Sowing updated successfully' : 'Sowing added successfully');
-        } else {
-            alert('Error: ' + (result.error || 'Unknown error'));
-        }
-    } catch (error) {
-        console.error('Error saving sowing:', error);
-        alert('Failed to save sowing: ' + error.message);
+        const delText = await delRes.text();
+        const delJson = JSON.parse(delText); // will throw if server spits HTML
+        if (!delJson.success) throw new Error(delJson.error || 'Delete failed');
+
+        // 2) add the new pair
+        const addRes = await fetch('api.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'add_crop_sowing',
+            crop_id: cropIdNew,
+            harvest_id: harvestIdNew,
+            plant_date: plantDate,
+            harvest_date: harvestDate
+          })
+        });
+        const addText = await addRes.text();
+        const addJson = JSON.parse(addText);
+        if (!addJson.success) throw new Error(addJson.error || 'Add failed');
+
+      } else {
+        // pair unchanged → just update dates for the same composite key
+        const updRes = await fetch('api.php', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_crop_sowing',
+            crop_id: cropIdNew,        // same as old
+            harvest_id: harvestIdNew,  // same as old
+            plant_date: plantDate,
+            harvest_date: harvestDate
+          })
+        });
+        const updText = await updRes.text();
+        const updJson = JSON.parse(updText);
+        if (!updJson.success) throw new Error(updJson.error || 'Update failed');
+      }
+
+    } else {
+      // adding fresh
+      const addRes = await fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_crop_sowing',
+          crop_id: cropIdNew,
+          harvest_id: harvestIdNew,
+          plant_date: plantDate,
+          harvest_date: harvestDate
+        })
+      });
+      const addText = await addRes.text();
+      const addJson = JSON.parse(addText);
+      if (!addJson.success) throw new Error(addJson.error || 'Add failed');
     }
+
+    closeSowingModal();
+    loadSowings();
+    alert(isEditing ? 'Sowing saved' : 'Sowing added');
+
+  } catch (err) {
+    console.error('Error saving sowing:', err);
+    alert('Failed to save sowing: ' + err.message);
+  }
 }
+
 
 async function deleteSowing(harvestId, cropId) {
     if (!confirm('Are you sure you want to delete this sowing record?')) return;
