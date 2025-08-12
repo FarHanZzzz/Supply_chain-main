@@ -213,8 +213,14 @@ CREATE TABLE Deliveries (
     vehicle_license_no VARCHAR(50),
     delivery_date DATE,
     delivery_time TIME,
-    delivery_man_name VARCHAR(255)
+    delivery_man_name VARCHAR(255),
+    expected_time TIME,
+    delivered_time TIME,
+    spoilage_quantity INT NOT NULL DEFAULT 0,
+    delivery_status ENUM('on time','late') NOT NULL DEFAULT 'on time',
+    delivery_success ENUM('successful','unsuccessful') NOT NULL DEFAULT 'successful'
 );
+
 
 -- Orders
 CREATE TABLE Orders (
@@ -350,10 +356,21 @@ INSERT INTO Sensor_Data (sensor_id, timestamp, temperature, humidity, travel_dur
 (3, '2024-06-17 08:30:00', NULL, NULL, 120, '40.7128,-74.0060'),
 (4, '2024-09-03 14:15:00', 2.0, NULL, NULL, NULL);
 
-INSERT INTO Deliveries (vehicle_license_no, delivery_date, delivery_time, delivery_man_name) VALUES
-('ABC-123', '2024-06-25', '14:30:00', 'Carlos Rodriguez'),
-('XYZ-789', '2024-07-10', '09:15:00', 'Emma Thompson'),
-('DEF-456', '2024-09-08', '16:45:00', 'James Wilson');
+INSERT INTO Deliveries
+  (vehicle_license_no, delivery_date, delivery_time, delivery_man_name,
+   expected_time, delivered_time, spoilage_quantity, delivery_status, delivery_success)
+VALUES
+  -- On time, no spoilage, successful
+  ('ABC-123', '2024-06-25', '14:30:00', 'Carlos Rodriguez',
+   '14:30:00', '14:30:00', 0, 'on time', 'successful'),
+
+  -- Late (delivered after expected), small spoilage, successful
+  ('XYZ-789', '2024-07-10', '09:15:00', 'Emma Thompson',
+   '09:00:00', '09:15:00', 3, 'late', 'successful'),
+
+  -- Late, higher spoilage, unsuccessful (to exercise KPI/Chart buckets)
+  ('DEF-456', '2024-09-08', '16:45:00', 'James Wilson',
+   '16:30:00', '16:45:00', 12, 'late', 'unsuccessful');
 
 INSERT INTO Orders (location, order_date) VALUES
 ('Downtown Store', '2024-06-20'),
