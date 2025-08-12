@@ -76,7 +76,11 @@ class DocumentManagementHandler {
     public function searchDocuments($term) {
         $raw = trim((string)$term);
         $like = '%' . strtolower($raw) . '%';
-
+        
+        // Check if term is a numeric ID or DOC- formatted ID
+        $isNumericId = is_numeric($raw);
+        $isFormattedId = preg_match('/^DOC-?(\d+)$/i', $raw, $matches);
+        
         $sql = "SELECT 
                 sd.document_id,
                 sd.shipment_id,
@@ -100,23 +104,42 @@ class DocumentManagementHandler {
                OR LOWER(s.shipment_destination) LIKE ?
                OR LOWER(CONCAT(d.first_name, ' ', d.last_name)) LIKE ?
                OR LOWER(sd.document_type) LIKE ?
-            ORDER BY sd.issue_date DESC";
-
-    $stmt = $this->conn->prepare($sql);
-    if (!$stmt) {
-        return [];
+               OR sd.document_id = ? " .  // Numeric ID search
+               ($isFormattedId ? "OR sd.document_id = ? " : "") .  // Formatted ID search
+            "ORDER BY sd.issue_date DESC";
+    
+        $stmt = $this->conn->prepare($sql);
+        if (!$stmt) {
+            return [];
+        }
+        
+        // Bind parameters based on ID type
+        $types = "ssssi";
+        $params = [$like, $like, $like, $like];
+        
+        // Numeric ID parameter
+        $params[] = $isNumericId ? (int)$raw : 0;
+        
+        // Formatted ID parameter if exists
+        if ($isFormattedId) {
+            $types .= "i";
+            $params[] = (int)$matches[1];
+        }
+        
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        $documents = [];
+        while ($row = $result->fetch_assoc()) {
+            $documents[] = $row;
+        }
+        $stmt->close();
+        return $documents;
     }
-    $stmt->bind_param("ssss", $like, $like, $like, $like);
-    $stmt->execute();
-    $result = $stmt->get_result();
 
-    $documents = [];
-    while ($row = $result->fetch_assoc()) {
-        $documents[] = $row;
-    }
-    $stmt->close();
-    return $documents;
-}
+
+
 
 
     // Add a new document

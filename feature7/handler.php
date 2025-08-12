@@ -1,5 +1,5 @@
 <?php
-require_once '../../common/db.php';
+require_once '../common/db.php';
 
 class AnalyticsHandler {
     private $conn;
@@ -8,425 +8,464 @@ class AnalyticsHandler {
         global $conn;
         $this->conn = $conn;
     }
+
+    // ===== DELIVERIES CRUD OPERATIONS =====
     
-    // Get overall system statistics
-    public function getSystemStats() {
-        $stats = [];
-        
-        // Total shipments
-        $sql = "SELECT COUNT(*) as total FROM shipment";
+    public function getAllDeliveries() {
+        $sql = "
+        SELECT 
+            delivery_id,
+            vehicle_license_no,
+            delivery_date,
+            delivery_time,
+            delivery_man_name,
+            expected_time,
+            delivered_time,
+            spoilage_quantity,
+            delivery_status,
+            delivery_success
+        FROM Deliveries 
+        ORDER BY delivery_id DESC
+        ";
         $result = $this->conn->query($sql);
-        $stats['total_shipments'] = $result->fetch_assoc()['total'];
         
-        // Total products (using packaged_product_batch for simplicity)
-        $sql = "SELECT COUNT(*) as total FROM harvest"; // Using harvest as primary product source
-        $result = $this->conn->query($sql);
-        $stats['total_products'] = $result->fetch_assoc()['total'];
-        
-        // Total transports
-        $sql = "SELECT COUNT(*) as total FROM transport";
-        $result = $this->conn->query($sql);
-        $stats['total_transports'] = $result->fetch_assoc()['total'];
-        
-        // Total drivers
-        $sql = "SELECT COUNT(*) as total FROM driver";
-        $result = $this->conn->query($sql);
-        $stats['total_drivers'] = $result->fetch_assoc()['total'];
-        
-        return $stats;
-    }
-    
-    // Get delivery performance metrics
-    public function getDeliveryPerformance() {
-        $performance = [];
-        
-        // On-time deliveries (assuming 'Delivered' status means on-time for demo)
-        $sql = "SELECT 
-                    COUNT(*) as total_deliveries,
-                    SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as on_time_deliveries
-                FROM shipment 
-            
-                WHERE status IN ('delivered', 'in_transit')";
-        
-        $result = $this->conn->query($sql);
-        $data = $result->fetch_assoc();
-        
-        $performance['total_deliveries'] = $data['total_deliveries'];
-        $performance['on_time_deliveries'] = $data['on_time_deliveries'];
-        $performance['on_time_percentage'] = $data['total_deliveries'] > 0 ? 
-            round(($data['on_time_deliveries'] / $data['total_deliveries']) * 100, 2) : 0;
-        
-        // Average delivery time (simulated)
-        $performance['avg_delivery_time'] = rand(24, 72); // 24-72 hours
-        
-        return $performance;
-    }
-    
-    // Get transportation costs analysis
-    public function getTransportationCosts() {
-        $costs = [];
-        
-        // Simulated cost data based on shipments
-        $sql = "SELECT 
-                    COUNT(*) as shipment_count,
-                    AVG(CASE 
-                        WHEN t.vehicle_type = 'Refrigerated Truck' THEN 700
-                        WHEN t.vehicle_type = 'Standard Truck' THEN 500
-                        WHEN t.vehicle_type = 'Large Truck' THEN 800
-                        WHEN t.vehicle_type = 'Cold Storage Truck' THEN 750
-                        ELSE 400
-                    END) as avg_cost_per_shipment
-                FROM shipment s
-                JOIN transport t ON s.transport_id = t.transport_id";
-        
-        $result = $this->conn->query($sql);
-        $data = $result->fetch_assoc();
-        
-        $costs['total_shipments'] = $data['shipment_count'];
-        $costs['avg_cost_per_shipment'] = round($data['avg_cost_per_shipment'], 2);
-        $costs['total_estimated_cost'] = round($data['shipment_count'] * $data['avg_cost_per_shipment'], 2);
-        
-        // Cost breakdown by vehicle type
-        $sql = "SELECT 
-                    t.vehicle_type,
-                    COUNT(*) as shipment_count,
-                    CASE 
-                        WHEN t.vehicle_type = 'Refrigerated Truck' THEN 700
-                        WHEN t.vehicle_type = 'Standard Truck' THEN 500
-                        WHEN t.vehicle_type = 'Large Truck' THEN 800
-                        WHEN t.vehicle_type = 'Cold Storage Truck' THEN 750
-                        ELSE 400
-                    END as cost_per_shipment
-                FROM shipment s
-                JOIN transport t ON s.transport_id = t.transport_id
-                GROUP BY t.vehicle_type";
-        
-        $result = $this->conn->query($sql);
-        $costs['by_vehicle_type'] = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $costs['by_vehicle_type'][] = [
-                    'vehicle_type' => $row['vehicle_type'],
-                    'shipment_count' => $row['shipment_count'],
-                    'cost_per_shipment' => $row['cost_per_shipment'],
-                    'total_cost' => $row['shipment_count'] * $row['cost_per_shipment']
-                ];
-            }
+        if (!$result) {
+            error_log("Database error in getAllDeliveries: " . $this->conn->error);
+            return [];
         }
         
-        return $costs;
-    }
-    
-    // Get carrier reliability metrics
-    public function getCarrierReliability() {
-        $reliability = [];
-        
-        // Driver performance (simulated based on completed shipments)
-        $sql = "SELECT 
-                    d.driver_id,
-                    d.driver_name,
-                    COUNT(s.shipment_id) as total_shipments,
-                    SUM(CASE WHEN s.status = 'delivered' THEN 1 ELSE 0 END) as completed_shipments,
-                    t.vehicle_type
-                FROM driver d
-                LEFT JOIN transport t ON d.driver_id = t.driver_id
-                LEFT JOIN shipment s ON t.transport_id = s.transport_id
-                GROUP BY d.driver_id, d.driver_name, t.vehicle_type
-                ORDER BY completed_shipments DESC";
-        
-        $result = $this->conn->query($sql);
-        $reliability['drivers'] = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $success_rate = $row['total_shipments'] > 0 ? 
-                    round(($row['completed_shipments'] / $row['total_shipments']) * 100, 2) : 0;
-                
-                $reliability['drivers'][] = [
-                    'driver_id' => $row['driver_id'],
-                    'driver_name' => $row['driver_name'],
-                    'vehicle_type' => $row['vehicle_type'],
-                    'total_shipments' => $row['total_shipments'],
-                    'completed_shipments' => $row['completed_shipments'],
-                    'success_rate' => $success_rate
-                ];
-            }
+        $deliveries = [];
+        while ($row = $result->fetch_assoc()) {
+            $deliveries[] = $row;
         }
         
-        return $reliability;
+        error_log("getAllDeliveries found " . count($deliveries) . " records");
+        return $deliveries;
     }
-    
-    // Get shipment trends over time
-    public function getShipmentTrends($period = '30') {
-        $trends = [];
-        
-        // Daily shipment counts for the last 30 days
-        $sql = "SELECT 
-                    DATE(shipment_date) as date,
-                    COUNT(*) as shipment_count,
-                    SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_count
-                FROM shipment 
-                WHERE shipment_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-                GROUP BY DATE(shipment_date)
-                ORDER BY date";
-        
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param("i", $period);
+
+    public function addDelivery($data) {
+        $vehicleLicense = $data['vehicle_license_no'] ?? null; // optional
+        $stmt = $this->conn->prepare("
+            INSERT INTO Deliveries (
+                vehicle_license_no, 
+                delivery_date, 
+                delivery_time, 
+                delivery_man_name, 
+                expected_time, 
+                delivered_time, 
+                spoilage_quantity, 
+                delivery_status, 
+                delivery_success
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->bind_param("ssssssiss", 
+            $vehicleLicense,
+            $data['delivery_date'],
+            $data['delivery_time'],
+            $data['delivery_man_name'],
+            $data['expected_time'],
+            $data['delivered_time'],
+            $data['spoilage_quantity'],
+            $data['delivery_status'],
+            $data['delivery_success']
+        );
+        $stmt->execute();
+        $id = $stmt->insert_id;
+        $stmt->close();
+        return $id;
+    }
+
+    public function updateDelivery($id, $data) {
+        $vehicleLicense = $data['vehicle_license_no'] ?? null; // optional
+        $stmt = $this->conn->prepare("
+            UPDATE Deliveries SET 
+                vehicle_license_no = ?, 
+                delivery_date = ?, 
+                delivery_time = ?, 
+                delivery_man_name = ?, 
+                expected_time = ?, 
+                delivered_time = ?, 
+                spoilage_quantity = ?, 
+                delivery_status = ?, 
+                delivery_success = ?
+            WHERE delivery_id = ?
+        ");
+        $stmt->bind_param("ssssssissi", 
+            $vehicleLicense,
+            $data['delivery_date'],
+            $data['delivery_time'],
+            $data['delivery_man_name'],
+            $data['expected_time'],
+            $data['delivered_time'],
+            $data['spoilage_quantity'],
+            $data['delivery_status'],
+            $data['delivery_success'],
+            $id
+        );
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        return $affected > 0;
+    }
+
+    public function deleteDelivery($id) {
+        $stmt = $this->conn->prepare("DELETE FROM Deliveries WHERE delivery_id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        return $affected > 0;
+    }
+
+    public function getDeliveryById($id) {
+        $stmt = $this->conn->prepare("SELECT * FROM Deliveries WHERE delivery_id = ?");
+        $stmt->bind_param("i", $id);
         $stmt->execute();
         $result = $stmt->get_result();
+        $delivery = $result->fetch_assoc();
+        $stmt->close();
+        return $delivery;
+    }
+
+    // ===== TRANSPORTS CRUD OPERATIONS =====
+    
+    public function getAllTransports() {
+        $sql = "
+        SELECT 
+            t.transport_id,
+            t.driver_id,
+            t.vehicle_license_no,
+            t.vehicle_type,
+            t.vehicle_capacity,
+            t.vehicle_status,
+            d.first_name,
+            d.last_name,
+            d.phone_number
+        FROM Transports t
+        LEFT JOIN Drivers d ON t.driver_id = d.driver_id
+        ORDER BY t.transport_id DESC
+        ";
+        $result = $this->conn->query($sql);
         
-        $trends['daily'] = [];
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $trends['daily'][] = [
-                    'date' => $row['date'],
-                    'shipments' => $row['shipment_count'],
-                    'delivered' => $row['delivered_count']
-                ];
-            }
+        if (!$result) {
+            error_log("Database error in getAllTransports: " . $this->conn->error);
+            return [];
         }
         
+        $transports = [];
+        while ($row = $result->fetch_assoc()) {
+            // Calculate carrier reliability for each transport
+            $row['carrier_reliability'] = $this->calculateCarrierReliability($row['transport_id']);
+            $transports[] = $row;
+        }
+        
+        error_log("getAllTransports found " . count($transports) . " records");
+        return $transports;
+    }
+
+    private function assertUniqueVehicleLicense(?string $vehicleLicense, ?int $ignoreTransportId = null): void {
+        if ($vehicleLicense === null || $vehicleLicense === '') return;
+        $sql = "SELECT transport_id FROM Transports WHERE vehicle_license_no = ?" . ($ignoreTransportId ? " AND transport_id <> ?" : "");
+        $stmt = $this->conn->prepare($sql);
+        if ($ignoreTransportId) {
+            $stmt->bind_param("si", $vehicleLicense, $ignoreTransportId);
+        } else {
+            $stmt->bind_param("s", $vehicleLicense);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $exists = $res && $res->num_rows > 0;
+        $stmt->close();
+        if ($exists) {
+            throw new Exception('Vehicle license already exists. It must be unique.');
+        }
+    }
+
+    public function addTransport($data) {
+        // Validate license format (e.g., ABC-123 or ABC-1234)
+        $vehicleLicense = strtoupper(trim($data['vehicle_license_no']));
+        if (!preg_match('/^[A-Z]{3}-\d{3,4}$/', $vehicleLicense)) {
+            throw new Exception('Invalid vehicle license format. Use ABC-123 or ABC-1234');
+        }
+        $this->assertUniqueVehicleLicense($vehicleLicense, null);
+
+        $stmt = $this->conn->prepare("
+            INSERT INTO Transports (
+                driver_id, 
+                vehicle_type, 
+                vehicle_license_no, 
+                vehicle_capacity, 
+                vehicle_status
+            ) VALUES (?, ?, ?, ?, ?)
+        ");
+        $stmt->bind_param("issds", 
+            $data['driver_id'],
+            $data['vehicle_type'],
+            $vehicleLicense,
+            $data['vehicle_capacity'],
+            $data['vehicle_status']
+        );
+        $stmt->execute();
+        $id = $stmt->insert_id;
+        $stmt->close();
+        return $id;
+    }
+
+    public function updateTransport($id, $data) {
+        $vehicleLicense = strtoupper(trim($data['vehicle_license_no']));
+        if (!preg_match('/^[A-Z]{3}-\d{3,4}$/', $vehicleLicense)) {
+            throw new Exception('Invalid vehicle license format. Use ABC-123 or ABC-1234');
+        }
+        $this->assertUniqueVehicleLicense($vehicleLicense, $id);
+
+        $stmt = $this->conn->prepare("
+            UPDATE Transports SET 
+                driver_id = ?, 
+                vehicle_type = ?, 
+                vehicle_license_no = ?, 
+                vehicle_capacity = ?, 
+                vehicle_status = ?
+            WHERE transport_id = ?
+        ");
+        $stmt->bind_param("issdsi", 
+            $data['driver_id'],
+            $data['vehicle_type'],
+            $vehicleLicense,
+            $data['vehicle_capacity'],
+            $data['vehicle_status'],
+            $id
+        );
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        return $affected > 0;
+    }
+
+    public function deleteTransport($id) {
+        $stmt = $this->conn->prepare("DELETE FROM Transports WHERE transport_id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        return $affected > 0;
+    }
+
+    public function getTransportById($id) {
+        $stmt = $this->conn->prepare("SELECT * FROM Transports WHERE transport_id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $transport = $result->fetch_assoc();
+        $stmt->close();
+        return $transport;
+    }
+
+    // ===== DROPDOWN DATA =====
+    
+    public function getDriversDropdown() {
+        $sql = "SELECT driver_id, first_name, last_name, phone_number FROM Drivers ORDER BY first_name, last_name";
+        $result = $this->conn->query($sql);
+        $drivers = [];
+        while ($row = $result->fetch_assoc()) {
+            $drivers[] = [
+                'id' => $row['driver_id'],
+                'label' => $row['first_name'] . ' ' . $row['last_name'] . ' (' . $row['phone_number'] . ')'
+            ];
+        }
+        return $drivers;
+    }
+
+    // Get vehicle types from existing transports
+    public function getVehicleTypesDropdown() {
+        $sql = "SELECT DISTINCT vehicle_type FROM Transports WHERE vehicle_type IS NOT NULL AND vehicle_type != '' ORDER BY vehicle_type";
+        $result = $this->conn->query($sql);
+        $vehicleTypes = [];
+        while ($row = $result->fetch_assoc()) {
+            $vehicleTypes[] = $row['vehicle_type'];
+        }
+        
+        // If no vehicle types found, return some common defaults
+        if (empty($vehicleTypes)) {
+            $vehicleTypes = ['Truck', 'Van', 'Refrigerated Truck', 'Container Truck', 'Pickup Truck'];
+        }
+        
+        return $vehicleTypes;
+    }
+
+    // Get vehicle capacities from existing transports
+    public function getVehicleCapacitiesDropdown() {
+        $sql = "SELECT DISTINCT vehicle_capacity FROM Transports WHERE vehicle_capacity IS NOT NULL AND vehicle_capacity > 0 ORDER BY vehicle_capacity";
+        $result = $this->conn->query($sql);
+        $capacities = [];
+        while ($row = $result->fetch_assoc()) {
+            $capacities[] = $row['vehicle_capacity'];
+        }
+        
+        // If no capacities found, return some common defaults
+        if (empty($capacities)) {
+            $capacities = [1000, 2000, 3000, 5000, 10000, 15000, 20000];
+        }
+        
+        return $capacities;
+    }
+
+    // ===== KPI CALCULATIONS =====
+    
+    public function getKPIs() {
+        $kpis = [];
+        
+        // Delivery KPIs (on-time/late/success + spoilage)
+        $sql = "SELECT 
+            COUNT(*) as total_deliveries,
+            SUM(CASE WHEN delivery_status = 'on time' THEN 1 ELSE 0 END) as on_time_deliveries,
+            SUM(CASE WHEN delivery_status = 'late' THEN 1 ELSE 0 END) as late_deliveries,
+            SUM(CASE WHEN delivery_success = 'successful' THEN 1 ELSE 0 END) as successful_deliveries,
+            SUM(CASE WHEN delivery_success = 'unsuccessful' THEN 1 ELSE 0 END) as unsuccessful_deliveries,
+            SUM(spoilage_quantity) as total_spoilage
+        FROM Deliveries";
+        $result = $this->conn->query($sql);
+        $row = $result->fetch_assoc();
+        
+        $kpis['total_deliveries'] = (int)$row['total_deliveries'];
+        $kpis['on_time_deliveries'] = (int)$row['on_time_deliveries'];
+        $kpis['late_deliveries'] = (int)$row['late_deliveries'];
+        $kpis['successful_deliveries'] = (int)$row['successful_deliveries'];
+        $kpis['unsuccessful_deliveries'] = (int)$row['unsuccessful_deliveries'];
+        $kpis['total_spoilage'] = (int)$row['total_spoilage'];
+        
+        // Transport KPIs + Carrier reliability based on Shipments delivered
+        $sql = "SELECT 
+            COUNT(*) as total_transports,
+            SUM(CASE WHEN vehicle_status = 'available' THEN 1 ELSE 0 END) as available_vehicles,
+            SUM(CASE WHEN vehicle_status = 'in-use' THEN 1 ELSE 0 END) as in_use_vehicles,
+            SUM(CASE WHEN vehicle_status = 'needs repair' THEN 1 ELSE 0 END) as needs_repair_vehicles,
+            SUM(CASE WHEN vehicle_status = 'under maintenance' THEN 1 ELSE 0 END) as under_maintenance_vehicles
+        FROM Transports";
+        $result = $this->conn->query($sql);
+        $row = $result->fetch_assoc();
+        
+        $kpis['total_transports'] = (int)$row['total_transports'];
+        $kpis['available_vehicles'] = (int)$row['available_vehicles'];
+        $kpis['in_use_vehicles'] = (int)$row['in_use_vehicles'];
+        $kpis['needs_repair_vehicles'] = (int)$row['needs_repair_vehicles'];
+        $kpis['under_maintenance_vehicles'] = (int)$row['under_maintenance_vehicles'];
+
+        // Overall carrier reliability from shipments
+        $sql = "SELECT 
+            COUNT(*) AS total_shipments,
+            SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) AS delivered_shipments
+        FROM Shipments";
+        $res = $this->conn->query($sql);
+        $ship = $res->fetch_assoc();
+        $totalShipments = (int)$ship['total_shipments'];
+        $deliveredShipments = (int)$ship['delivered_shipments'];
+        $kpis['carrier_reliability'] = $totalShipments > 0 ? round(($deliveredShipments / $totalShipments) * 100, 2) : 0;
+        
+        return $kpis;
+    }
+
+    // Calculate carrier reliability for a specific transport
+    private function calculateCarrierReliability($transportId) {
+        // Get total shipments and successful shipments for this transport
+        $sql = "SELECT 
+            COUNT(*) as total_shipments,
+            SUM(CASE WHEN s.status = 'Delivered' THEN 1 ELSE 0 END) as successful_shipments
+        FROM Shipments s
+        WHERE s.transport_id = ?";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $transportId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
         $stmt->close();
         
-        // Monthly trends
-        $sql = "SELECT 
-                    YEAR(shipment_date) as year,
-                    MONTH(shipment_date) as month,
-                    COUNT(*) as shipment_count,
-                    SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_count
-                FROM shipment 
-                WHERE shipment_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-                GROUP BY YEAR(shipment_date), MONTH(shipment_date)
-                ORDER BY year, month";
+        $totalShipments = (int)$row['total_shipments'];
+        $successfulShipments = (int)$row['successful_shipments'];
         
-        $result = $this->conn->query($sql);
-        $trends['monthly'] = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $trends['monthly'][] = [
-                    'year' => $row['year'],
-                    'month' => $row['month'],
-                    'shipments' => $row['shipment_count'],
-                    'delivered' => $row['delivered_count']
-                ];
-            }
+        if ($totalShipments > 0) {
+            return round(($successfulShipments / $totalShipments) * 100, 2);
         }
-        
-        return $trends;
+        return 0;
     }
-    
-    // Get product performance analytics
-    public function getProductPerformance() {
-        $performance = [];
-        
-        // Most shipped products (using harvest and shipment tables)
-        $sql = "SELECT 
-                    h.harvest_name as product_name,
-                    COUNT(s.shipment_id) as shipment_count,
-                    SUM(CASE WHEN s.status = 'delivered' THEN 1 ELSE 0 END) as delivered_count
-                FROM shipment s
-                JOIN harvest h ON s.product_details LIKE CONCAT('%', h.harvest_name, '%')
-                GROUP BY h.harvest_name
-                ORDER BY shipment_count DESC
-                LIMIT 10";
-        
-        $result = $this->conn->query($sql);
-        $performance['top_products'] = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $success_rate = $row['shipment_count'] > 0 ? 
-                    round(($row['delivered_count'] / $row['shipment_count']) * 100, 2) : 0;
-                
-                $performance['top_products'][] = [
-                    'product_name' => $row['product_name'],
-                    'shipment_count' => $row['shipment_count'],
-                    'delivered_count' => $row['delivered_count'],
-                    'success_rate' => $success_rate
-                ];
-            }
-        }
-        
-        return $performance;
-    }
-    
-    // Get route efficiency analysis
-    public function getRouteEfficiency() {
-        $efficiency = [];
-        
-        // Most common destinations
-        $sql = "SELECT 
-                    destination,
-                    COUNT(*) as shipment_count,
-                    AVG(DATEDIFF(actual_delivery, shipment_date)) as avg_delivery_time
-                FROM shipment 
-                WHERE actual_delivery IS NOT NULL
-                GROUP BY destination
-                ORDER BY shipment_count DESC
-                LIMIT 10";
-        
-        $result = $this->conn->query($sql);
-        $efficiency['destinations'] = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $efficiency['destinations'][] = [
-                    'destination' => $row['destination'],
-                    'shipment_count' => $row['shipment_count'],
-                    'avg_delivery_time' => $row['avg_delivery_time'] ? round($row['avg_delivery_time'], 1) : null
-                ];
-            }
-        }
-        
-        return $efficiency;
-    }
-    
-    // Get condition monitoring analytics
-    public function getConditionAnalytics() {
-        $analytics = [];
-        
-        // Check if sensor_data table exists
-        $sql = "SHOW TABLES LIKE 'sensor_data'";
-        $result = $this->conn->query($sql);
-        
-        if ($result->num_rows > 0) {
-            // Temperature and humidity trends
-            $sql = "SELECT 
-                        DATE(timestamp) as date,
-                        AVG(temperature) as avg_temperature,
-                        AVG(humidity) as avg_humidity,
-                        COUNT(*) as reading_count
-                    FROM sensor_data 
-                    WHERE timestamp >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY DATE(timestamp)
-                    ORDER BY date";
-            
-            $result = $this->conn->query($sql);
-            $analytics['daily_conditions'] = [];
-            
-            if ($result->num_rows > 0) {
-                while($row = $result->fetch_assoc()) {
-                    $analytics['daily_conditions'][] = [
-                        'date' => $row['date'],
-                        'avg_temperature' => round($row['avg_temperature'], 2),
-                        'avg_humidity' => round($row['avg_humidity'], 2),
-                        'reading_count' => $row['reading_count']
-                    ];
-                }
-            }
-            
-            // Alert frequency by sensor (simulated alerts based on temperature/humidity)
-            $sql = "SELECT 
-                        sd.sensor_id,
-                        s.sensor_type as sensor_name,
-                        COUNT(*) as total_readings,
-                        SUM(CASE WHEN (sd.temperature < 2 OR sd.temperature > 8 OR sd.humidity < 80 OR sd.humidity > 95) THEN 1 ELSE 0 END) as alert_count
-                    FROM sensor_data sd
-                    JOIN sensor s ON sd.sensor_id = s.sensor_id
-                    GROUP BY sd.sensor_id, s.sensor_type
-                    ORDER BY alert_count DESC";
-            
-            $result = $this->conn->query($sql);
-            $analytics['sensor_alerts'] = [];
-            
-            if ($result->num_rows > 0) {
-                while($row = $result->fetch_assoc()) {
-                    $alert_rate = $row['total_readings'] > 0 ? 
-                        round(($row['alert_count'] / $row['total_readings']) * 100, 2) : 0;
-                    
-                    $analytics['sensor_alerts'][] = [
-                        'sensor_id' => $row['sensor_id'],
-                        'sensor_name' => $row['sensor_name'],
-                        'total_readings' => $row['total_readings'],
-                        'alert_count' => $row['alert_count'],
-                        'alert_rate' => $alert_rate
-                    ];
-                }
-            }
-        } else {
-            $analytics['daily_conditions'] = [];
-            $analytics['sensor_alerts'] = [];
-        }
-        
-        return $analytics;
-    }
-    
-    // Get document compliance analytics
-    public function getDocumentAnalytics() {
-        $analytics = [];
-        
-        // Document status distribution (using shipment status and order status)
-        $sql_shipment_status = "SELECT status, COUNT(*) as count FROM shipment GROUP BY status";
-        $result_shipment_status = $this->conn->query($sql_shipment_status);
-        $status_distribution = [];
-        if ($result_shipment_status->num_rows > 0) {
-            while($row = $result_shipment_status->fetch_assoc()) {
-                $status_distribution[$row['status']] = $row['count'];
-            }
-        }
 
-        $sql_order_status = "SELECT 'Completed' as status, COUNT(*) as count FROM orders"; // Assuming orders are 'Completed'
-        $result_order_status = $this->conn->query($sql_order_status);
-        if ($result_order_status->num_rows > 0) {
-            $row = $result_order_status->fetch_assoc();
-            $status_distribution[$row['status']] = ($status_distribution[$row['status']] ?? 0) + $row['count'];
-        }
-
-        foreach($status_distribution as $status => $count) {
-            $analytics['status_distribution'][] = ['status' => $status, 'count' => $count];
-        }
-
-        // Document type distribution
-        $analytics['type_distribution'] = [
-            ['document_type' => 'Shipment', 'count' => $this->conn->query("SELECT COUNT(*) FROM shipment")->fetch_assoc()['COUNT(*)']],
-            ['document_type' => 'Order', 'count' => $this->conn->query("SELECT COUNT(*) FROM orders")->fetch_assoc()['COUNT(*)']]
-        ];
-
-        // Compliance rate by shipment (simulated based on shipment status)
-        $sql = "SELECT 
-                    shipment_id,
-                    destination as shipment_destination,
-                    status,
-                    CASE WHEN status = 'delivered' THEN 100 ELSE RAND() * 80 + 20 END as compliance_rate
-                FROM shipment
-                ORDER BY compliance_rate DESC
-                LIMIT 10";
-            
-        $result = $this->conn->query($sql);
-        $analytics['compliance_by_shipment'] = [];
-        
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                $analytics['compliance_by_shipment'][] = [
-                    'shipment_id' => $row['shipment_id'],
-                    'shipment_destination' => $row['shipment_destination'],
-                    'status' => $row['status'],
-                    'compliance_rate' => round($row['compliance_rate'], 2)
-                ];
-            }
-        }
-        
-        return $analytics;
-    }
+    // ===== CHART DATA =====
     
-    // Export data to PDF
-    public function exportToPDF($data, $title = "Analytics Report") {
-        require_once '../../common/pdf_generator.php';
-        
-        $pdf = new PDFGenerator();
-        $headers = [];
-        if (!empty($data)) {
-            $headers = array_keys($data[0]);
-            // Filter out internal keys if necessary
-            $headers = array_filter($headers, function($key) {
-                return !in_array($key, ["shipment_id", "order_id", "driver_id", "transport_id", "sensor_id"]);
-            });
-            $headers = array_values($headers); // Re-index array
+    public function getDeliveryChartData() {
+        $sql = "SELECT 
+            delivery_status,
+            COUNT(*) as count
+        FROM Deliveries 
+        GROUP BY delivery_status";
+        $result = $this->conn->query($sql);
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[$row['delivery_status']] = (int)$row['count'];
         }
-        
-        $pdf->generateTablePDF($data, $headers, $title);
+        return $data;
+    }
+
+    public function getVehicleStatusChartData() {
+        $sql = "SELECT 
+            vehicle_status,
+            COUNT(*) as count
+        FROM Transports 
+        GROUP BY vehicle_status";
+        $result = $this->conn->query($sql);
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[$row['vehicle_status']] = (int)$row['count'];
+        }
+        return $data;
+    }
+
+    public function getSpoilageChartData() {
+        $sql = "SELECT 
+            CASE 
+                WHEN spoilage_quantity = 0 THEN 'No Spoilage'
+                WHEN spoilage_quantity BETWEEN 1 AND 5 THEN 'Low (1-5)'
+                WHEN spoilage_quantity BETWEEN 6 AND 10 THEN 'Medium (6-10)'
+                ELSE 'High (>10)'
+            END as spoilage_category,
+            COUNT(*) as count
+        FROM Deliveries 
+        GROUP BY spoilage_category
+        ORDER BY 
+            CASE spoilage_category
+                WHEN 'No Spoilage' THEN 1
+                WHEN 'Low (1-5)' THEN 2
+                WHEN 'Medium (6-10)' THEN 3
+                WHEN 'High (>10)' THEN 4
+            END";
+        $result = $this->conn->query($sql);
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[$row['spoilage_category']] = (int)$row['count'];
+        }
+        return $data;
+    }
+
+    public function getReliabilityTrendData() {
+        // Get reliability data over time (last 6 months)
+        $sql = "SELECT 
+            DATE_FORMAT(delivery_date, '%Y-%m') as month,
+            COUNT(*) as total_deliveries,
+            SUM(CASE WHEN delivery_success = 'successful' THEN 1 ELSE 0 END) as successful_deliveries
+        FROM Deliveries 
+        WHERE delivery_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(delivery_date, '%Y-%m')
+        ORDER BY month";
+        $result = $this->conn->query($sql);
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $successRate = $row['total_deliveries'] > 0 ? 
+                round(($row['successful_deliveries'] / $row['total_deliveries']) * 100, 2) : 0;
+            $data[] = [
+                'month' => $row['month'],
+                'reliability' => $successRate
+            ];
+        }
+        return $data;
     }
 }
 ?>

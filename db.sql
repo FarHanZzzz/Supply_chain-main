@@ -2,7 +2,7 @@ DROP DATABASE IF EXISTS farhansupply_db2;
 CREATE DATABASE farhansupply_db2;
 USE farhansupply_db2;
 
--- Create tables in proper dependency order
+-- Farmers and Farms
 CREATE TABLE Farmers (
     farmer_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
@@ -30,6 +30,7 @@ CREATE TABLE Farmer_Farm_Assignments (
     FOREIGN KEY (farm_id) REFERENCES Farms(farm_id)
 );
 
+-- Crops and Harvests
 CREATE TABLE Crops (
     crop_id INT AUTO_INCREMENT PRIMARY KEY,
     crop_name VARCHAR(255) NOT NULL UNIQUE,
@@ -56,6 +57,7 @@ CREATE TABLE Crop_Sowing (
     FOREIGN KEY (crop_id) REFERENCES Crops(crop_id) ON DELETE CASCADE
 );
 
+-- Inventory and Utilization
 CREATE TABLE Farmer_Required_Inventory (
     inventory_id INT AUTO_INCREMENT PRIMARY KEY,
     raw_materials TEXT,
@@ -75,6 +77,7 @@ CREATE TABLE Material_Utilization (
     FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id)
 );
 
+-- Warehouses and Batches
 CREATE TABLE Warehouses (
     warehouse_id INT AUTO_INCREMENT PRIMARY KEY,
     warehouse_name VARCHAR(255) NOT NULL,
@@ -94,6 +97,7 @@ CREATE TABLE Harvest_Batches (
     FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE 
 );
 
+-- Factories and Products
 CREATE TABLE Owners (
     owner_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
@@ -137,6 +141,7 @@ CREATE TABLE Package_Products (
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
+-- Transport and Shipments
 CREATE TABLE Drivers (
     driver_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
@@ -148,12 +153,13 @@ CREATE TABLE Transports (
     transport_id INT AUTO_INCREMENT PRIMARY KEY,
     driver_id INT NOT NULL,
     vehicle_type VARCHAR(100),
+    vehicle_license_no VARCHAR(50),
     vehicle_capacity DECIMAL(10,2),
     current_capacity DECIMAL(10,2),
+    vehicle_status ENUM('available', 'in-use', 'needs repair', 'under maintenance') DEFAULT 'available',
     FOREIGN KEY (driver_id) REFERENCES Drivers(driver_id) ON DELETE CASCADE
 );
 
--- Now we can create Shipments since all dependencies exist
 CREATE TABLE Shipments (
     shipment_id INT AUTO_INCREMENT PRIMARY KEY,
     transport_id INT NOT NULL,
@@ -162,12 +168,13 @@ CREATE TABLE Shipments (
     shipment_date DATE,
     shipment_destination VARCHAR(255),
     status VARCHAR(50),
+    transportation_cost DECIMAL(10,2) DEFAULT 0.00,
     FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE,
     FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE CASCADE,
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
--- Now we can create Shipping_Documents since Shipments exists
+-- Shipping Documents
 CREATE TABLE Shipping_Documents (
     document_id INT AUTO_INCREMENT PRIMARY KEY,
     shipment_id INT NOT NULL,
@@ -181,6 +188,7 @@ CREATE TABLE Shipping_Documents (
     FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE
 );
 
+-- Sensors
 CREATE TABLE Sensors (
     sensor_id INT AUTO_INCREMENT PRIMARY KEY,
     sensor_type VARCHAR(100),
@@ -201,6 +209,7 @@ CREATE TABLE Sensor_Data (
     FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE
 );
 
+-- Deliveries
 CREATE TABLE Deliveries (
     delivery_id INT AUTO_INCREMENT PRIMARY KEY,
     vehicle_license_no VARCHAR(50),
@@ -209,6 +218,7 @@ CREATE TABLE Deliveries (
     delivery_man_name VARCHAR(255)
 );
 
+-- Orders
 CREATE TABLE Orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     location VARCHAR(255),
@@ -323,13 +333,6 @@ INSERT INTO Transports (driver_id, vehicle_type, vehicle_capacity, current_capac
 (2, 'Van', 2000.00, 0.00),
 (3, 'Refrigerated Truck', 3000.00, 0.00);
 
--- Now we can insert Shipments since all dependencies exist
-INSERT INTO Shipments (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status) VALUES
-(1, 1, NULL, '2024-06-17', 'Factory A', 'In Transit'),
-(2, NULL, 1, '2024-06-25', 'Retail Store B', 'Delivered'),
-(3, 3, NULL, '2024-09-03', 'Processing Plant C', 'Pending');
-
--- Now we can insert Shipping_Documents since Shipments exists
 INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, issue_date, issued_by, file_path, approval_status, notes) VALUES
 (1, 'Invoice', 'INV-001', '2024-06-17', 'Admin', '/invoices/INV-001.pdf', 'Approved', 'Initial shipment invoice'),
 (2, 'Bill of Lading', 'BOL-001', '2024-06-25', 'Admin', '/bills/BOL-001.pdf', 'Approved', 'Product delivery'),

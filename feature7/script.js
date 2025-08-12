@@ -1,442 +1,736 @@
-// Feature 7: Analytics JavaScript
+// Global variables
+let deliveries = [];
+let transports = [];
+let kpis = {};
+let drivers = [];
+let vehicleTypes = [];
+let vehicleCapacities = [];
+let charts = {};
 
-let currentTab = 'overview';
-let dashboardData = null;
-
-// Load all data when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadDashboardData();
-    showTab('overview');
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Feature 7 page loaded');
+    
+    // Test API connection first
+    testAPI();
+    
+    loadAll();
 });
 
-// Tab switching
-function showTab(tabName) {
-    currentTab = tabName;
+// Test API connection
+function testAPI() {
+    console.log('Testing API connection...');
+    fetch('api.php?action=test')
+        .then(res => res.json())
+        .then(data => {
+            console.log('API test successful:', data);
+        })
+        .catch(error => {
+            console.error('API test failed:', error);
+        });
+}
+
+// Load all data
+function loadAll() {
+    fetchKPIs();
+    fetchDeliveries();
+    fetchTransports();
+    fetchDrivers();
+    fetchVehicleTypes();
+    fetchVehicleCapacities();
     
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.style.display = 'none';
+    // Load chart data after a short delay to ensure data is available
+    setTimeout(() => {
+        updateSpoilageChart();
+    }, 500);
+}
+
+// ===== KPI FUNCTIONS =====
+
+function fetchKPIs() {
+    console.log('Fetching KPIs...');
+    fetch('api.php?action=kpis')
+        .then(res => {
+            console.log('KPIs response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('KPIs data received:', data);
+            kpis = data;
+            updateKPIStats();
+        })
+        .catch(error => {
+            console.error('Error fetching KPIs:', error);
+            console.error('Error details:', error.message);
+        });
+}
+
+function updateKPIStats() {
+    document.getElementById('totalDeliveries').textContent = kpis.total_deliveries || 0;
+    document.getElementById('onTimeDeliveries').textContent = kpis.on_time_deliveries || 0;
+    document.getElementById('carrierReliability').textContent = (kpis.carrier_reliability || 0) + '%';
+    document.getElementById('totalSpoilage').textContent = kpis.total_spoilage || 0;
+    
+    // Hide loading, show stats
+    document.getElementById('loadingStats').style.display = 'none';
+    document.getElementById('statsGrid').style.display = 'grid';
+}
+
+// ===== DELIVERY FUNCTIONS =====
+
+function fetchDeliveries() {
+    console.log('Fetching deliveries...');
+    fetch('api.php?action=deliveries')
+        .then(res => {
+            console.log('Deliveries response status:', res.status);
+            return res.json();
+        })
+        .then(data => {
+            console.log('Deliveries data received:', data);
+            deliveries = data;
+            renderDeliveriesTable();
+            updateDeliveryCharts();
+        })
+        .catch(error => {
+            console.error('Error fetching deliveries:', error);
+            console.error('Error details:', error.message);
+        });
+}
+
+function renderDeliveriesTable() {
+    const tbody = document.getElementById('deliveriesTableBody');
+    tbody.innerHTML = '';
+    
+    deliveries.forEach(delivery => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${delivery.delivery_id}</td>
+            <td>${delivery.expected_time || ''}</td>
+            <td>${delivery.delivered_time || ''}</td>
+            <td>${delivery.spoilage_quantity || 0}</td>
+            <td><span class="status-badge status-${delivery.delivery_status?.replace(' ', '-')}">${delivery.delivery_status || ''}</span></td>
+            <td><span class="status-badge status-${delivery.delivery_success}">${delivery.delivery_success || ''}</span></td>
+            <td>
+                <button class="btn btn-edit" onclick="editDelivery(${delivery.delivery_id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-delete" onclick="deleteDelivery(${delivery.delivery_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
     
-    // Remove active class from all tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
+    // Hide loading, show table
+    document.getElementById('loadingDeliveries').style.display = 'none';
+    document.getElementById('deliveriesTable').style.display = 'table';
+}
+
+function openDeliveryModal(id = null) {
+    const modal = document.getElementById('deliveryModal');
+    const title = document.getElementById('deliveryModalTitle');
+    const form = document.getElementById('deliveryForm');
+    
+    if (id) {
+        // Edit mode
+        title.textContent = 'Edit Delivery';
+        const delivery = deliveries.find(d => d.delivery_id == id);
+        if (delivery) {
+            populateDeliveryForm(delivery);
+            form.dataset.deliveryId = String(id);
+        }
+    } else {
+        // Add mode
+        title.textContent = 'Add New Delivery';
+        form.reset();
+        delete form.dataset.deliveryId;
+    }
+    
+    modal.style.display = 'block';
+}
+
+function closeDeliveryModal() {
+    document.getElementById('deliveryModal').style.display = 'none';
+}
+
+function populateDeliveryForm(delivery) {
+    document.getElementById('deliveryDate').value = delivery.delivery_date || '';
+    document.getElementById('expectedTime').value = delivery.expected_time || '';
+    document.getElementById('deliveredTime').value = delivery.delivered_time || '';
+    document.getElementById('deliveryManName').value = delivery.delivery_man_name || '';
+    document.getElementById('spoilageQuantity').value = delivery.spoilage_quantity || 0;
+    document.getElementById('deliveryStatus').value = delivery.delivery_status || '';
+    document.getElementById('deliverySuccess').value = delivery.delivery_success || '';
+}
+
+function editDelivery(id) {
+    openDeliveryModal(id);
+}
+
+function saveDelivery() {
+    const form = document.getElementById('deliveryForm');
+    const formData = {
+        action: form.dataset.deliveryId ? 'update_delivery' : 'add_delivery',
+        delivery_date: document.getElementById('deliveryDate').value,
+        delivery_time: document.getElementById('deliveredTime').value,
+        delivery_man_name: document.getElementById('deliveryManName').value,
+        expected_time: document.getElementById('expectedTime').value,
+        delivered_time: document.getElementById('deliveredTime').value,
+        spoilage_quantity: parseInt(document.getElementById('spoilageQuantity').value) || 0,
+        delivery_status: document.getElementById('deliveryStatus').value,
+        delivery_success: document.getElementById('deliverySuccess').value
+    };
+    if (form.dataset.deliveryId) {
+        formData.delivery_id = parseInt(form.dataset.deliveryId);
+    }
+    
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            closeDeliveryModal();
+            loadAll();
+        } else {
+            alert('Error saving delivery: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving delivery');
+    });
+}
+
+function deleteDelivery(id) {
+    if (!confirm('Are you sure you want to delete this delivery?')) return;
+    
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_delivery', delivery_id: id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+        loadAll();
+        } else {
+            alert('Error deleting delivery: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting delivery');
+    });
+}
+
+// ===== TRANSPORT FUNCTIONS =====
+
+function fetchTransports() {
+    console.log('Fetching transports...');
+    fetch('api.php?action=transports')
+        .then(res => {
+            console.log('Transports response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Transports data received:', data);
+            transports = data;
+            renderTransportsTable();
+            updateVehicleCharts();
+        })
+        .catch(error => {
+            console.error('Error fetching transports:', error);
+            console.error('Error details:', error.message);
+        });
+}
+
+function renderTransportsTable() {
+    const tbody = document.getElementById('transportsTableBody');
+    tbody.innerHTML = '';
+    
+    transports.forEach(transport => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${transport.transport_id}</td>
+            <td>${transport.vehicle_license_no || ''}</td>
+            <td>${transport.vehicle_type || ''}</td>
+            <td>${transport.vehicle_capacity || 0}</td>
+            <td><span class="status-badge status-${transport.vehicle_status?.replace(' ', '-')}">${transport.vehicle_status || ''}</span></td>
+            <td>${transport.carrier_reliability || 0}%</td>
+            <td>
+                <button class="btn btn-edit" onclick="editTransport(${transport.transport_id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-delete" onclick="deleteTransport(${transport.transport_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
     
-    // Show selected tab content
-    document.getElementById(tabName + 'Tab').style.display = 'block';
+    // Hide loading, show table
+    document.getElementById('loadingTransports').style.display = 'none';
+    document.getElementById('transportsTable').style.display = 'table';
+}
+
+function openTransportModal(id = null) {
+    const modal = document.getElementById('transportModal');
+    const title = document.getElementById('transportModalTitle');
+    const form = document.getElementById('transportForm');
     
-    // Add active class to selected tab button
-    document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
-    
-    // Load appropriate data
-    switch(tabName) {
-        case 'overview':
-            displayOverview();
-            break;
-        case 'performance':
-            displayPerformanceMetrics();
-            break;
-        case 'costs':
-            displayCostAnalysis();
-            break;
-        case 'trends':
-            displayTrends();
-            break;
-        case 'reports':
-            displayReports();
-            break;
+    populateAllDropdowns();
+    if (id) {
+        // Edit mode
+        title.textContent = 'Edit Transport';
+        const transport = transports.find(t => t.transport_id == id);
+        if (transport) {
+            populateTransportForm(transport);
+            form.dataset.transportId = String(id);
+        }
+    } else {
+        // Add mode
+        title.textContent = 'Add New Transport';
+        form.reset();
+        delete form.dataset.transportId;
     }
+    
+    modal.style.display = 'block';
 }
 
-// Load dashboard data
-async function loadDashboardData() {
-    try {
-        showLoading(true);
-        const response = await fetch('api.php?action=dashboard');
-        dashboardData = await response.json();
-        displayOverview();
-        showLoading(false);
-    } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        showNotification('Failed to load analytics data', 'error');
-        showLoading(false);
+function closeTransportModal() {
+    document.getElementById('transportModal').style.display = 'none';
+}
+
+function populateTransportForm(transport) {
+    document.getElementById('driverId').value = transport.driver_id || '';
+    document.getElementById('vehicleType').value = transport.vehicle_type || '';
+    document.getElementById('vehicleLicenseNo').value = transport.vehicle_license_no || '';
+    document.getElementById('vehicleCapacity').value = transport.vehicle_capacity || '';
+    document.getElementById('vehicleStatus').value = transport.vehicle_status || '';
+}
+
+function editTransport(id) {
+    openTransportModal(id);
+}
+
+function saveTransport() {
+    const form = document.getElementById('transportForm');
+    const license = (document.getElementById('vehicleLicenseNo').value || '').toUpperCase().trim();
+    const licenseFormat = /^[A-Z]{3}-\d{3,4}$/;
+    if (!licenseFormat.test(license)) { alert('Invalid vehicle license format. Use ABC-123 or ABC-1234'); return; }
+    if (!form.dataset.transportId && transports.some(t => (t.vehicle_license_no||'').toUpperCase() === license)) {
+        alert('Vehicle license already exists. It must be unique.');
+        return;
     }
+    const payload = {
+        action: form.dataset.transportId ? 'update_transport' : 'add_transport',
+        driver_id: parseInt(document.getElementById('driverId').value),
+        vehicle_type: document.getElementById('vehicleType').value,
+        vehicle_license_no: license,
+        vehicle_capacity: parseFloat(document.getElementById('vehicleCapacity').value),
+        vehicle_status: document.getElementById('vehicleStatus').value
+    };
+    if (form.dataset.transportId) payload.transport_id = parseInt(form.dataset.transportId);
+    fetch('api.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+      .then(async res => { const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.error||'Failed'); return data; })
+      .then(() => { closeTransportModal(); fetchTransports(); fetchKPIs(); })
+      .catch(err => alert(err.message));
 }
 
-// Display overview tab
-function displayOverview() {
-    if (!dashboardData) return;
+function deleteTransport(id) {
+    if (!confirm('Are you sure you want to delete this transport?')) return;
     
-    // System statistics
-    const stats = dashboardData.system_stats;
-    document.getElementById('totalShipments').textContent = stats.total_shipments || '0';
-    document.getElementById('totalProducts').textContent = stats.total_products || '0';
-    document.getElementById('totalTransports').textContent = stats.total_transports || '0';
-    document.getElementById('totalDrivers').textContent = stats.total_drivers || '0';
-    
-    // Delivery performance
-    const delivery = dashboardData.delivery_performance;
-    document.getElementById('onTimeDeliveries').textContent = delivery.on_time_deliveries || '0';
-    document.getElementById('onTimePercentage').textContent = (delivery.on_time_percentage || 0) + '%';
-    document.getElementById('avgDeliveryTime').textContent = (delivery.avg_delivery_time || 0) + 'h';
-    
-    // Transportation costs
-    const costs = dashboardData.transportation_costs;
-    document.getElementById('totalCosts').textContent = '$' + (costs.total_estimated_cost || 0).toLocaleString();
-    document.getElementById('avgCostPerShipment').textContent = '$' + (costs.avg_cost_per_shipment || 0);
-    
-    // Recent trends (simplified)
-    const trends = dashboardData.shipment_trends;
-    if (trends.daily && trends.daily.length > 0) {
-        const recentTrend = trends.daily[trends.daily.length - 1];
-        document.getElementById('recentShipments').textContent = recentTrend.shipments || '0';
-    }
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_transport', transport_id: id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            loadAll();
+        } else {
+            alert('Error deleting transport: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting transport');
+    });
 }
 
-// Display performance metrics
-function displayPerformanceMetrics() {
-    if (!dashboardData) return;
-    
-    // Carrier reliability
-    const reliability = dashboardData.carrier_reliability;
-    displayCarrierReliability(reliability.drivers || []);
-    
-    // Product performance
-    const products = dashboardData.product_performance;
-    displayProductPerformance(products.top_products || []);
-    
-    // Route efficiency
-    const routes = dashboardData.route_efficiency;
-    displayRouteEfficiency(routes.destinations || []);
+// ===== DRIVER FUNCTIONS =====
+
+function fetchDrivers() {
+    console.log('Fetching drivers...');
+    fetch('api.php?action=drivers_dropdown')
+        .then(res => {
+            console.log('Drivers response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Drivers data received:', data);
+            drivers = data;
+        })
+        .catch(error => {
+            console.error('Error fetching drivers:', error);
+            console.error('Error details:', error.message);
+        });
 }
 
-// Display carrier reliability
-function displayCarrierReliability(drivers) {
-    const tableBody = document.getElementById('carrierTableBody');
-    tableBody.innerHTML = '';
+function fetchVehicleTypes() {
+    console.log('Fetching vehicle types...');
+    fetch('api.php?action=vehicle_types_dropdown')
+        .then(res => {
+            console.log('Vehicle types response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Vehicle types data received:', data);
+            vehicleTypes = data;
+        })
+        .catch(error => {
+            console.error('Error fetching vehicle types:', error);
+            console.error('Error details:', error.message);
+        });
+}
+
+function fetchVehicleCapacities() {
+    console.log('Fetching vehicle capacities...');
+    fetch('api.php?action=vehicle_capacities_dropdown')
+        .then(res => {
+            console.log('Vehicle capacities response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Vehicle capacities data received:', data);
+            vehicleCapacities = data;
+        })
+        .catch(error => {
+            console.error('Error fetching vehicle capacities:', error);
+            console.error('Error details:', error.message);
+        });
+}
+
+function populateDriversDropdown() {
+    const select = document.getElementById('driverId');
+    select.innerHTML = '<option value="">Select Driver</option>';
     
     drivers.forEach(driver => {
-        const row = tableBody.insertRow();
-        const reliabilityClass = driver.success_rate >= 90 ? 'high-reliability' : 
-                                driver.success_rate >= 70 ? 'medium-reliability' : 'low-reliability';
-        
-        row.innerHTML = `
-            <td>DR-${driver.driver_id.toString().padStart(3, '0')}</td>
-            <td>${driver.driver_name}</td>
-            <td>${driver.vehicle_type}</td>
-            <td>${driver.total_shipments}</td>
-            <td>${driver.completed_shipments}</td>
-            <td><span class="reliability-badge ${reliabilityClass}">${driver.success_rate}%</span></td>
-        `;
+        const option = document.createElement('option');
+        option.value = driver.id;
+        option.textContent = driver.label;
+        select.appendChild(option);
     });
 }
 
-// Display product performance
-function displayProductPerformance(products) {
-    const tableBody = document.getElementById('productTableBody');
-    tableBody.innerHTML = '';
+function populateVehicleTypeDropdown() {
+    const select = document.getElementById('vehicleType');
+    select.innerHTML = '<option value="">Select Vehicle Type</option>';
     
-    products.forEach(product => {
-        const row = tableBody.insertRow();
-        const performanceClass = product.success_rate >= 90 ? 'high-performance' : 
-                                product.success_rate >= 70 ? 'medium-performance' : 'low-performance';
-        
-        row.innerHTML = `
-            <td>${product.product_name}</td>
-            <td>${product.shipment_count}</td>
-            <td>${product.delivered_count}</td>
-            <td><span class="performance-badge ${performanceClass}">${product.success_rate}%</span></td>
-        `;
+    vehicleTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        select.appendChild(option);
     });
 }
 
-// Display route efficiency
-function displayRouteEfficiency(destinations) {
-    const tableBody = document.getElementById('routeTableBody');
-    tableBody.innerHTML = '';
+function populateVehicleCapacityDropdown() {
+    const select = document.getElementById('vehicleCapacity');
+    select.innerHTML = '<option value="">Select Vehicle Capacity</option>';
     
-    destinations.forEach(dest => {
-        const row = tableBody.insertRow();
-        const efficiencyClass = dest.avg_delivery_time <= 36 ? 'high-efficiency' : 
-                               dest.avg_delivery_time <= 48 ? 'medium-efficiency' : 'low-efficiency';
-        
-        row.innerHTML = `
-            <td>${dest.destination}</td>
-            <td>${dest.shipment_count}</td>
-            <td>${dest.avg_delivery_time ? dest.avg_delivery_time + 'h' : 'N/A'}</td>
-            <td><span class="efficiency-badge ${efficiencyClass}">
-                ${dest.avg_delivery_time <= 36 ? 'Excellent' : 
-                  dest.avg_delivery_time <= 48 ? 'Good' : 'Needs Improvement'}
-            </span></td>
-        `;
+    vehicleCapacities.forEach(capacity => {
+        const option = document.createElement('option');
+        option.value = capacity;
+        option.textContent = capacity;
+        select.appendChild(option);
     });
 }
 
-// Display cost analysis
-function displayCostAnalysis() {
-    if (!dashboardData) return;
-    
-    const costs = dashboardData.transportation_costs;
-    
-    // Cost summary
-    document.getElementById('totalEstimatedCost').textContent = '$' + (costs.total_estimated_cost || 0).toLocaleString();
-    document.getElementById('avgCostShipment').textContent = '$' + (costs.avg_cost_per_shipment || 0);
-    document.getElementById('totalShipmentsCount').textContent = costs.total_shipments || '0';
-    
-    // Cost breakdown by vehicle type
-    const tableBody = document.getElementById('costTableBody');
-    tableBody.innerHTML = '';
-    
-    if (costs.by_vehicle_type) {
-        costs.by_vehicle_type.forEach(vehicle => {
-            const row = tableBody.insertRow();
-            row.innerHTML = `
-                <td>${vehicle.vehicle_type}</td>
-                <td>${vehicle.shipment_count}</td>
-                <td>$${vehicle.cost_per_shipment}</td>
-                <td>$${vehicle.total_cost.toLocaleString()}</td>
-                <td>${((vehicle.total_cost / costs.total_estimated_cost) * 100).toFixed(1)}%</td>
-            `;
-        });
-    }
+function populateAllDropdowns() {
+    populateDriversDropdown();
+    populateVehicleTypeDropdown();
+    populateVehicleCapacityDropdown();
 }
 
-// Display trends
-function displayTrends() {
-    if (!dashboardData) return;
-    
-    const trends = dashboardData.shipment_trends;
-    
-    // Daily trends
-    displayDailyTrends(trends.daily || []);
-    
-    // Monthly trends
-    displayMonthlyTrends(trends.monthly || []);
-    
-    // Condition analytics
-    const conditions = dashboardData.condition_analytics;
-    displayConditionTrends(conditions.daily_conditions || []);
-    
-    // Document analytics
-    const documents = dashboardData.document_analytics;
-    displayDocumentAnalytics(documents);
+// ===== CHART FUNCTIONS =====
+
+function updateDeliveryCharts() {
+    fetch('api.php?action=delivery_chart')
+        .then(res => res.json())
+        .then(data => {
+            renderDeliveryChart(data);
+        })
+        .catch(error => console.error('Error fetching delivery chart data:', error));
 }
 
-// Display daily trends
-function displayDailyTrends(dailyData) {
-    const tableBody = document.getElementById('dailyTrendsBody');
-    tableBody.innerHTML = '';
+function updateVehicleCharts() {
+    fetch('api.php?action=vehicle_chart')
+        .then(res => res.json())
+        .then(data => {
+            renderVehicleChart(data);
+        })
+        .catch(error => console.error('Error fetching vehicle chart data:', error));
+}
+
+function updateSpoilageChart() {
+    fetch('api.php?action=spoilage_chart')
+        .then(res => res.json())
+        .then(data => {
+            renderSpoilageChart(data);
+        })
+        .catch(error => console.error('Error fetching spoilage chart data:', error));
+}
+
+function renderDeliveryChart(data) {
+    const ctx = document.getElementById('deliveryChart').getContext('2d');
     
-    // Show last 10 days
-    const recentData = dailyData.slice(-10);
+    if (charts.delivery) charts.delivery.destroy();
     
-    recentData.forEach(day => {
-        const row = tableBody.insertRow();
-        const deliveryRate = day.shipments > 0 ? ((day.delivered / day.shipments) * 100).toFixed(1) : '0';
-        
-        row.innerHTML = `
-            <td>${formatDate(day.date)}</td>
-            <td>${day.shipments}</td>
-            <td>${day.delivered}</td>
-            <td>${deliveryRate}%</td>
-        `;
+    charts.delivery = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(data),
+            datasets: [{
+                data: Object.values(data),
+                backgroundColor: ['#28a745', '#dc3545'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            layout: {
+                padding: 20
+            }
+        }
     });
 }
 
-// Display monthly trends
-function displayMonthlyTrends(monthlyData) {
-    const tableBody = document.getElementById('monthlyTrendsBody');
-    tableBody.innerHTML = '';
+function renderVehicleChart(data) {
+    const ctx = document.getElementById('vehicleChart').getContext('2d');
     
-    monthlyData.forEach(month => {
-        const row = tableBody.insertRow();
-        const deliveryRate = month.shipments > 0 ? ((month.delivered / month.shipments) * 100).toFixed(1) : '0';
-        const monthName = new Date(month.year, month.month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        
-        row.innerHTML = `
-            <td>${monthName}</td>
-            <td>${month.shipments}</td>
-            <td>${month.delivered}</td>
-            <td>${deliveryRate}%</td>
-        `;
+    if (charts.vehicle) charts.vehicle.destroy();
+    
+    charts.vehicle = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data),
+            datasets: [{
+                label: 'Vehicle Count',
+                data: Object.values(data),
+                backgroundColor: ['#17a2b8', '#ffc107', '#dc3545', '#6c757d'],
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            layout: {
+                padding: 20
+            }
+        }
     });
 }
 
-// Display condition trends
-function displayConditionTrends(conditionData) {
-    const tableBody = document.getElementById('conditionTrendsBody');
-    tableBody.innerHTML = '';
+function renderSpoilageChart(data) {
+    const ctx = document.getElementById('spoilageChart').getContext('2d');
     
-    // Show last 10 days
-    const recentData = conditionData.slice(-10);
+    if (charts.spoilage) charts.spoilage.destroy();
     
-    recentData.forEach(day => {
-        const row = tableBody.insertRow();
-        const alertRate = day.reading_count > 0 ? ((day.alert_count / day.reading_count) * 100).toFixed(1) : '0';
-        
-        row.innerHTML = `
-            <td>${formatDate(day.date)}</td>
-            <td>${day.avg_temperature}°C</td>
-            <td>${day.avg_humidity}%</td>
-            <td>${day.reading_count}</td>
-            <td>${day.alert_count}</td>
-            <td>${alertRate}%</td>
-        `;
+    charts.spoilage = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(data),
+            datasets: [{
+                data: Object.values(data),
+                backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#dc3545'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            layout: {
+                padding: 20
+            }
+        }
     });
 }
 
-// Display document analytics
-function displayDocumentAnalytics(documentData) {
-    // Status distribution
-    const statusBody = document.getElementById('documentStatusBody');
-    statusBody.innerHTML = '';
-    
-    if (documentData.status_distribution) {
-        documentData.status_distribution.forEach(status => {
-            const row = statusBody.insertRow();
-            row.innerHTML = `
-                <td>${status.status}</td>
-                <td>${status.count}</td>
-            `;
-        });
-    }
-    
-    // Type distribution
-    const typeBody = document.getElementById('documentTypeBody');
-    typeBody.innerHTML = '';
-    
-    if (documentData.type_distribution) {
-        documentData.type_distribution.forEach(type => {
-            const row = typeBody.insertRow();
-            row.innerHTML = `
-                <td>${type.document_type}</td>
-                <td>${type.count}</td>
-            `;
-        });
-    }
+
+// ===== SEARCH AND FILTER FUNCTIONS =====
+
+function searchDeliveries() {
+    const searchTerm = document.getElementById('deliverySearch').value.toLowerCase();
+    const filteredDeliveries = deliveries.filter(delivery => 
+        delivery.delivery_man_name?.toLowerCase().includes(searchTerm) ||
+        delivery.delivery_status?.toLowerCase().includes(searchTerm) ||
+        delivery.delivery_success?.toLowerCase().includes(searchTerm)
+    );
+    renderFilteredDeliveries(filteredDeliveries);
 }
 
-// Display reports
-function displayReports() {
-    // This would show custom report generation interface
-    // For now, just show a placeholder
-}
-
-// Generate custom report
-async function generateCustomReport() {
-    const startDate = document.getElementById('reportStartDate').value;
-    const endDate = document.getElementById('reportEndDate').value;
-    
-    if (!startDate || !endDate) {
-        showNotification('Please select start and end dates', 'error');
+function filterDeliveries(status) {
+    if (status === 'all') {
+        renderDeliveriesTable();
         return;
     }
     
-    const metrics = [];
-    if (document.getElementById('includeDelivery').checked) metrics.push('delivery_performance');
-    if (document.getElementById('includeCosts').checked) metrics.push('costs');
-    if (document.getElementById('includeTrends').checked) metrics.push('trends');
+    const filteredDeliveries = deliveries.filter(delivery => 
+        delivery.delivery_status === status
+    );
+    renderFilteredDeliveries(filteredDeliveries);
+}
+
+function renderFilteredDeliveries(filteredDeliveries) {
+    const tbody = document.getElementById('deliveriesTableBody');
+    tbody.innerHTML = '';
     
-    try {
-        const response = await fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                action: 'generate_report',
-                start_date: startDate,
-                end_date: endDate,
-                metrics: metrics
-            })
-        });
-        
-        const report = await response.json();
-        displayCustomReport(report);
-        showNotification('Custom report generated successfully', 'success');
-    } catch (error) {
-        console.error('Error generating custom report:', error);
-        showNotification('Failed to generate custom report', 'error');
+    filteredDeliveries.forEach(delivery => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${delivery.delivery_id}</td>
+            <td>${delivery.expected_time || ''}</td>
+            <td>${delivery.delivered_time || ''}</td>
+            <td>${delivery.spoilage_quantity || 0}</td>
+            <td><span class="status-badge status-${delivery.delivery_status?.replace(' ', '-')}">${delivery.delivery_status || ''}</span></td>
+            <td><span class="status-badge status-${delivery.delivery_success}">${delivery.delivery_success || ''}</span></td>
+            <td>
+                <button class="btn btn-edit" onclick="editDelivery(${delivery.delivery_id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-delete" onclick="deleteDelivery(${delivery.delivery_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function searchTransports() {
+    const searchTerm = document.getElementById('transportSearch').value.toLowerCase();
+    const filteredTransports = transports.filter(transport => 
+        transport.vehicle_license_no?.toLowerCase().includes(searchTerm) ||
+        transport.vehicle_type?.toLowerCase().includes(searchTerm) ||
+        transport.vehicle_status?.toLowerCase().includes(searchTerm)
+    );
+    renderFilteredTransports(filteredTransports);
+}
+
+function filterTransports(status) {
+    if (status === 'all') {
+        renderTransportsTable();
+        return;
     }
-}
-
-// Display custom report
-function displayCustomReport(report) {
-    const reportResults = document.getElementById('reportResults');
-    reportResults.innerHTML = `
-        <h4>Custom Report Results</h4>
-        <p><strong>Period:</strong> ${report.period.start} to ${report.period.end}</p>
-        <p><strong>Shipments in Period:</strong> ${report.shipments_in_period}</p>
-        <div class="report-content">
-            ${JSON.stringify(report, null, 2)}
-        </div>
-    `;
-    reportResults.style.display = 'block';
-}
-
-// Refresh data
-async function refreshData() {
-    await loadDashboardData();
-    showNotification('Analytics data refreshed successfully', 'success');
-}
-
-// Export data to PDF
-async function exportAnalyticsPDF() {
-    try {
-        const response = await fetch('api.php?action=export_pdf');
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'analytics_report.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            showNotification('Analytics report exported successfully!', 'success');
-        } else {
-            const errorText = await response.text();
-            showNotification(`Failed to export PDF: ${errorText}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error exporting PDF:', error);
-        showNotification('Failed to export PDF', 'error');
-    }
-}
-
-// Utility functions
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-}
-
-function showLoading(show) {
-    const loader = document.getElementById('loadingIndicator');
-    if (loader) {
-        loader.style.display = show ? 'block' : 'none';
-    }
-}
-
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
     
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 3000);
+    const filteredTransports = transports.filter(transport => 
+        transport.vehicle_status === status
+    );
+    renderFilteredTransports(filteredTransports);
 }
 
-// Auto-refresh every 5 minutes
-setInterval(() => {
-    loadDashboardData();
-}, 300000);
+function renderFilteredTransports(filteredTransports) {
+    const tbody = document.getElementById('transportsTableBody');
+    tbody.innerHTML = '';
+    
+    filteredTransports.forEach(transport => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${transport.transport_id}</td>
+            <td>${transport.vehicle_license_no || ''}</td>
+            <td>${transport.vehicle_type || ''}</td>
+            <td>${transport.vehicle_capacity || 0}</td>
+            <td><span class="status-badge status-${transport.vehicle_status?.replace(' ', '-')}">${transport.vehicle_status || ''}</span></td>
+            <td>${transport.carrier_reliability || 0}%</td>
+            <td>
+                <button class="btn btn-edit" onclick="editTransport(${transport.transport_id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-delete" onclick="deleteTransport(${transport.transport_id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ===== UTILITY FUNCTIONS =====
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const deliveryModal = document.getElementById('deliveryModal');
+    const transportModal = document.getElementById('transportModal');
+    
+    if (event.target === deliveryModal) {
+        closeDeliveryModal();
+    }
+    if (event.target === transportModal) {
+        closeTransportModal();
+    }
+};
+
+// Update all charts when data changes
+function updateAllCharts() {
+    updateDeliveryCharts();
+    updateVehicleCharts();
+    updateSpoilageChart();
+    updateReliabilityChart();
+}
+
+// Refresh all data
+function refreshData() {
+    loadAll();
+}
 
 
 
