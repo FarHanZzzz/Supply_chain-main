@@ -111,27 +111,29 @@ CREATE TABLE Factories (
     FOREIGN KEY (owner_id) REFERENCES Owners(owner_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Product_Batches (
-    product_batch_id INT AUTO_INCREMENT PRIMARY KEY,
-    factory_id INT NOT NULL,
-    production_date DATE,
-    quantity DECIMAL(10,2),
-    FOREIGN KEY (factory_id) REFERENCES Factories(factory_id)
+-- Added batch_name here
+CREATE TABLE Packaged_Product_Batches (
+  packaged_product_batch_id INT AUTO_INCREMENT PRIMARY KEY,
+  harvest_batch_id INT NOT NULL UNIQUE,
+  batch_number VARCHAR(100) UNIQUE,
+  batch_name VARCHAR(255),
+  factory_id INT NOT NULL,
+  production_date DATE,
+  quantity DECIMAL(10,2),
+  warehouse_id INT,
+  production_quantity DECIMAL(10,2),
+  FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE RESTRICT,
+  FOREIGN KEY (factory_id) REFERENCES Factories(factory_id) ON DELETE CASCADE,
+  FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
 );
 
-CREATE TABLE Packaged_Product_Batches (
-    packaged_product_batch_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_batch_id INT NOT NULL,
-    warehouse_id INT,
-    production_quantity DECIMAL(10,2),
-    FOREIGN KEY (product_batch_id) REFERENCES Product_Batches(product_batch_id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
-);
 
 CREATE TABLE Package_Products (
     packaged_product_id INT AUTO_INCREMENT PRIMARY KEY,
     packaged_product_batch_id INT NOT NULL,
     product_name VARCHAR(255),
+    storage_requirements VARCHAR(100),
+    packaging_details VARCHAR(100),
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
@@ -202,8 +204,8 @@ CREATE TABLE Sensor_Data (
 CREATE TABLE Deliveries (
     delivery_id INT AUTO_INCREMENT PRIMARY KEY,
     vehicle_license_no VARCHAR(50),
-    delivery_date DATE,  -- Changed from 'date' to avoid reserved word
-    delivery_time TIME,  -- Changed from 'time' to avoid reserved word
+    delivery_date DATE,
+    delivery_time TIME,
     delivery_man_name VARCHAR(255)
 );
 
@@ -229,7 +231,8 @@ CREATE TABLE Orderlines (
     FOREIGN KEY (delivery_id) REFERENCES Deliveries(delivery_id) ON DELETE CASCADE
 );
 
--- Sample data for testing (same as before, but with date/time column names fixed)
+-- Sample data
+
 INSERT INTO Farmers (first_name, last_name, phone_number, email) VALUES
 ('John', 'Doe', '123-456-7890', 'john.doe@example.com'),
 ('Jane', 'Smith', '098-765-4321', 'jane.smith@example.com'),
@@ -289,20 +292,19 @@ INSERT INTO Factories (owner_id, factory_name, factory_region, harvest_received_
 (1, 'Fresh Processing Plant', 'Industrial Zone A', 1500.00),
 (2, 'Grain Mill Co.', 'Industrial Zone B', 2500.00);
 
-INSERT INTO Product_Batches (factory_id, production_date, quantity) VALUES
-(1, '2024-06-20', 200.00),
-(2, '2024-07-05', 800.00),
-(1, '2024-09-05', 350.00);
+-- Now includes batch_name
+INSERT INTO Packaged_Product_Batches
+(harvest_batch_id, factory_id, batch_number, batch_name, production_date, quantity, warehouse_id, production_quantity)
+VALUES
+(1, 1, 'BATCH001', 'Tomato Batch A', '2024-06-20', 200.00, 1, 200.00),
+(2, 2, 'BATCH002', 'Wheat Batch B',  '2024-07-05', 800.00, 3, 800.00),
+(3, 1, 'BATCH003', 'Apple Batch C',  '2024-09-05', 350.00, 2, 350.00);
 
-INSERT INTO Packaged_Product_Batches (product_batch_id, warehouse_id, production_quantity) VALUES
-(1, 1, 200.00),
-(2, 3, 800.00),
-(3, 2, 350.00);
 
-INSERT INTO Package_Products (packaged_product_batch_id, product_name) VALUES
-(1, 'Canned Tomatoes'),
-(2, 'Wheat Flour'),
-(3, 'Apple Juice');
+INSERT INTO Package_Products (packaged_product_batch_id, product_name, storage_requirements, packaging_details) VALUES
+(1, 'Canned Tomatoes', 'Cool Dry Place', 'Metal Can'),
+(2, 'Wheat Flour', 'Cool Dry Place', 'Paper Bag'),
+(3, 'Apple Juice', 'Refrigerated', 'Plastic Bottle');
 
 INSERT INTO Drivers (first_name, last_name, phone_number) VALUES
 ('Tom', 'Anderson', '777-888-9999'),
@@ -315,7 +317,6 @@ INSERT INTO Drivers (first_name, last_name, phone_number) VALUES
 ('Olivia', 'Martinez', '444-555-6666'),
 ('Michael', 'Taylor', '999-000-1111'),
 ('Sophia', 'Harris', '123-456-7890');
-
 
 INSERT INTO Transports (driver_id, vehicle_type, vehicle_capacity, current_capacity) VALUES
 (1, 'Truck', 5000.00, 0.00),
@@ -346,7 +347,6 @@ INSERT INTO Sensor_Data (sensor_id, timestamp, temperature, humidity, travel_dur
 (3, '2024-06-17 08:30:00', NULL, NULL, 120, '40.7128,-74.0060'),
 (4, '2024-09-03 14:15:00', 2.0, NULL, NULL, NULL);
 
--- Fixed column names in Deliveries
 INSERT INTO Deliveries (vehicle_license_no, delivery_date, delivery_time, delivery_man_name) VALUES
 ('ABC-123', '2024-06-25', '14:30:00', 'Carlos Rodriguez'),
 ('XYZ-789', '2024-07-10', '09:15:00', 'Emma Thompson'),

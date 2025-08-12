@@ -30,6 +30,9 @@ switch ($method) {
                 case 'warehouses':
                     echo json_encode($handler->getAllWarehouses());
                     break;
+                case 'factories':
+                    echo json_encode($handler->getAllFactories());
+                    break;
                 case 'search':
                     if (isset($_GET['term'])) {
                         echo json_encode($handler->searchHarvestBatches($_GET['term']));
@@ -43,6 +46,21 @@ switch ($method) {
                 case 'warehouse_stock':
                     echo json_encode($handler->getWarehouseStockBreakdown());
                     break;
+                case 'packaged_batches':
+                    echo json_encode($handler->getPackagedProductBatchInventory());
+                    break;
+                case 'packaged_batch':
+                    if (isset($_GET['id'])) {
+                        echo json_encode($handler->getPackagedProductBatchById($_GET['id']));
+                    } else {
+                        echo json_encode(['error' => 'Batch ID required']);
+                    }
+                    break;
+                case 'available_harvest_batches':
+                    $includeId = isset($_GET['include_id']) ? intval($_GET['include_id']) : null;
+                    echo json_encode($handler->getAvailableHarvestBatches($includeId));
+                    break;
+
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -69,6 +87,44 @@ switch ($method) {
                         echo json_encode(['success' => false, 'error' => 'Failed to add batch']);
                     }
                     break;
+                case 'add_packaged_batch':
+                    $result = $handler->createPackagedProductBatch(
+                        $input['harvest_batch_id'],   // ✅ first
+                        $input['batch_name'],
+                        $input['factory_id'],
+                        $input['production_date'],
+                        $input['production_quantity'],
+                        $input['warehouse_id']
+                    );
+                    if ($result === true) {
+                        echo json_encode(['success' => true, 'message' => 'Packaged product batch created successfully']);
+                    } elseif (is_array($result) && isset($result['error'])) {
+                        echo json_encode(['success' => false, 'error' => $result['error']]);
+                    } else {
+                        echo json_encode(['success' => false, 'error' => 'Failed to create packaged product batch']);
+                    }
+                    break;
+
+                case 'update_packaged_batch':
+                    $result = $handler->updatePackagedProductBatch(
+                        $input['packaged_product_batch_id'],
+                        $input['batch_name'],
+                        $input['factory_id'],
+                        $input['production_date'],
+                        $input['production_quantity'],
+                        $input['warehouse_id'],
+                        $input['harvest_batch_id']    // ✅ last here to match handler
+                    );
+                    if ($result === true) {
+                        echo json_encode(['success' => true, 'message' => 'Packaged product batch updated successfully']);
+                    } elseif (is_array($result) && isset($result['error'])) {
+                        echo json_encode(['success' => false, 'error' => $result['error']]);
+                    } else {
+                        echo json_encode(['success' => false, 'error' => 'Failed to update packaged product batch']);
+                    }
+                    break;
+
+
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -92,6 +148,27 @@ switch ($method) {
                     );
                     echo json_encode(['success' => $result]);
                     break;
+                
+                case 'update_packaged_batch':
+                    $result = $handler->updatePackagedProductBatch(
+                        $input['packaged_product_batch_id'],
+                        $input['batch_name'],
+                        $input['factory_id'],
+                        $input['production_date'],
+                        $input['production_quantity'],
+                        $input['warehouse_id'],
+                        $input['harvest_batch_id']    // ✅ last here to match handler
+                    );
+                    if ($result === true) {
+                        echo json_encode(['success' => true, 'message' => 'Packaged product batch updated successfully']);
+                    } elseif (is_array($result) && isset($result['error'])) {
+                        echo json_encode(['success' => false, 'error' => $result['error']]);
+                    } else {
+                        echo json_encode(['success' => false, 'error' => 'Failed to update packaged product batch']);
+                    }
+                    break;
+
+                    
                 case 'update_status':
                     $result = $handler->updateBatchStatus(
                         $input['harvest_batch_id'],
@@ -112,6 +189,10 @@ switch ($method) {
             switch ($input['action']) {
                 case 'delete_batch':
                     $result = $handler->deleteHarvestBatch($input['harvest_batch_id']);
+                    echo json_encode(['success' => $result]);
+                    break;
+                case 'delete_packaged_batch':
+                    $result = $handler->deletePackagedProductBatch($input['packaged_product_batch_id']);
                     echo json_encode(['success' => $result]);
                     break;
                 default:

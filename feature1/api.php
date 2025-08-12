@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -37,10 +39,16 @@ switch ($method) {
                     echo json_encode($handler->getAllCropSowings());
                     break;
                 case 'traceability':
-                    if (isset($_GET['packaged_product_id'])) {
-                        echo json_encode($handler->getProductTraceability((int)$_GET['packaged_product_id']));
-                    } else {
+                    if (!isset($_GET['packaged_product_id'])) {
                         echo json_encode(['error' => 'packaged_product_id required']);
+                        break;
+                    }
+                    $id = (int)$_GET['packaged_product_id'];
+                    $trace = $handler->getProductTraceability($id);
+                    if (!$trace) {
+                        echo json_encode(['error' => 'No traceability found for this packaged product']);
+                    } else {
+                        echo json_encode($trace);
                     }
                     break;
                 default:
@@ -77,7 +85,7 @@ switch ($method) {
                     }
                     break;
                 case 'add_package':
-                    $result = $handler->addPackage($input['packaged_product_batch_id'], $input['product_name']);
+                    $result = $handler->addPackage($input['packaged_product_batch_id'], $input['product_name'], $input['storage_requirements'], $input['packaging_details']);
                     if ($result) {
                         echo json_encode(['success' => true, 'id' => $result]);
                     } else {
@@ -123,19 +131,37 @@ switch ($method) {
                     $result = $handler->updatePackage(
                         $input['packaged_product_id'],
                         $input['packaged_product_batch_id'],
-                        $input['product_name']
+                        $input['product_name'],
+                        $input['storage_requirements'],
+                        $input['packaging_details']
                     );
                     echo json_encode(['success' => $result]);
                     break;
                 case 'update_crop_sowing':
-                    $result = $handler->updateCropSowing(
-                        $input['harvest_id'],
-                        $input['crop_id'],
-                        $input['plant_date'],
-                        $input['harvest_date']
-                    );
-                    echo json_encode(['success' => $result]);
-                    break;
+    $old_crop_id    = isset($input['old_crop_id']) ? intval($input['old_crop_id']) : 0;
+    $old_harvest_id = isset($input['old_harvest_id']) ? intval($input['old_harvest_id']) : 0;
+    $new_crop_id    = isset($input['crop_id']) ? intval($input['crop_id']) : 0;
+    $new_harvest_id = isset($input['harvest_id']) ? intval($input['harvest_id']) : 0;
+    $plant_date     = $input['plant_date'] ?? null;
+    $harvest_date   = $input['harvest_date'] ?? null;
+
+    if (!$old_crop_id || !$old_harvest_id || !$new_crop_id || !$new_harvest_id || !$plant_date || !$harvest_date) {
+        echo json_encode(['success' => false, 'error' => 'Missing required fields']);
+        break;
+    }
+
+    $success = $handler->updateCropSowing(
+        $old_crop_id,
+        $old_harvest_id,
+        $new_crop_id,
+        $new_harvest_id,
+        $plant_date,
+        $harvest_date
+    );
+
+    echo json_encode(['success' => $success]);
+    break;
+
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }

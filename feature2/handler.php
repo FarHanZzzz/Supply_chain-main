@@ -9,25 +9,66 @@ class StockMonitoringHandler {
         $this->conn = $conn;
     }
     
+    public function getAvailableHarvestBatches($includeId = null) {
+        // Only harvest batches not yet linked to a packaged product batch.
+        // If $includeId is provided (edit mode), include that one too so the dropdown can keep current selection.
+        $baseSql = "
+            SELECT 
+                hb.harvest_batch_id,
+                hb.batch_number,
+                hb.quantity,
+                hb.warehouse_id,
+                w.warehouse_name,
+                h.harvest_name,
+                hb.storage_date
+            FROM Harvest_Batches hb
+            JOIN Warehouses w ON w.warehouse_id = hb.warehouse_id
+            JOIN Harvests  h ON h.harvest_id   = hb.harvest_id
+            LEFT JOIN Packaged_Product_Batches ppb 
+                ON ppb.harvest_batch_id = hb.harvest_batch_id
+            WHERE ppb.harvest_batch_id IS NULL
+        ";
+
+        if ($includeId) {
+            // include the currently-linked batch id too (for edit)
+            $sql = $baseSql . " OR hb.harvest_batch_id = ? ORDER BY hb.storage_date DESC";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('i', $includeId);
+        } else {
+            $sql = $baseSql . " ORDER BY hb.storage_date DESC";
+            $stmt = $this->conn->prepare($sql);
+        }
+
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $rows = [];
+        while ($row = $res->fetch_assoc()) { $rows[] = $row; }
+        $stmt->close();
+        return $rows;
+    }
+
+
     // Get all harvest batches with stock details
     public function getAllHarvestBatches() {
 
         // Harvest Batches = hb , Warehouses = w , Harvests = h , Farms = f
         $sql = "SELECT 
-                    hb.harvest_batch_id,
-                    hb.batch_number,
-                    hb.quantity,
-                    hb.status,
-                    hb.storage_date,
-                    w.warehouse_name,
-                    h.harvest_name,
-                    h.harvest_type,
-                    f.farm_name
-                FROM Harvest_Batches hb
-                JOIN Warehouses w ON hb.warehouse_id = w.warehouse_id
-                JOIN Harvests h ON hb.harvest_id = h.harvest_id
-                JOIN Farms f ON h.farm_id = f.farm_id
-                ORDER BY hb.storage_date DESC";
+            hb.harvest_batch_id,
+            hb.harvest_id,
+            hb.warehouse_id,
+            hb.batch_number,
+            hb.quantity,
+            hb.status,
+            hb.storage_date,
+            w.warehouse_name,
+            h.harvest_name,
+            h.harvest_type,
+            f.farm_name
+        FROM Harvest_Batches hb
+        JOIN Warehouses w ON hb.warehouse_id = w.warehouse_id
+        JOIN Harvests h   ON hb.harvest_id   = h.harvest_id
+        JOIN Farms f      ON h.farm_id       = f.farm_id
+        ORDER BY hb.storage_date DESC";
         
         $result = $this->conn->query($sql);
         $batches = [];
@@ -210,32 +251,228 @@ class StockMonitoringHandler {
         return $items;
     }
 
+    // Get packaged product batch inventory
+   public function getPackagedProductBatchInventory() {
+    $sql = "
+    SELECT
+      ppb.packaged_product_batch_id,
+      ppb.batch_name,
+      ppb.production_quantity,
+      ppb.production_date,
+      ppb.warehouse_id,
+      w.warehouse_name,
+      ppb.factory_id,
+      f.factory_name,
+      ppb.harvest_batch_id,
+      hb.batch_number AS harvest_batch_number,
+      ppb.batch_number
+    FROM Packaged_Product_Batches ppb
+    LEFT JOIN Warehouses w ON w.warehouse_id = ppb.warehouse_id
+    LEFT JOIN Factories  f ON f.factory_id  = ppb.factory_id
+    LEFT JOIN Harvest_Batches hb ON hb.harvest_batch_id = ppb.harvest_batch_id
+    ORDER BY ppb.packaged_product_batch_id DESC";
+
+    $result = $this->conn->query($sql);
+    $rows = [];
+    if ($result && $result->num_rows > 0) {
+        while ($r = $result->fetch_assoc()) {
+            $rows[] = $r;
+        }
+    }
+    return $rows;
+}
+
+
+
+
     // Unified stock summary by warehouse and stage
     public function getWarehouseStockBreakdown() {
-        $sql = "SELECT w.warehouse_id, w.warehouse_name,
-            COALESCE(raw.raw_qty, 0) AS raw_quantity,
-            0 AS inprocess_quantity, -- In-process not linked in schema
-            COALESCE(finished.finished_qty, 0) AS finished_quantity
-        FROM Warehouses w
-        LEFT JOIN (
-            SELECT warehouse_id, SUM(quantity) AS raw_qty
-            FROM Harvest_Batches
-            GROUP BY warehouse_id
-        ) raw ON w.warehouse_id = raw.warehouse_id
-        LEFT JOIN (
-            SELECT warehouse_id, SUM(production_quantity) AS finished_qty
-            FROM Packaged_Product_Batches
-            GROUP BY warehouse_id
-        ) finished ON w.warehouse_id = finished.warehouse_id
-        ORDER BY w.warehouse_name";
+    $sql = "
+    SELECT
+      w.warehouse_id,
+      w.warehouse_name,
+      COALESCE(raw.total, 0)  AS raw_quantity,
+      COALESCE(pkg.total, 0)  AS finished_quantity
+    FROM Warehouses w
+    LEFT JOIN (
+      SELECT hb.warehouse_id, SUM(hb.quantity) AS total
+      FROM Harvest_Batches hb
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM Packaged_Product_Batches ppb
+        WHERE ppb.harvest_batch_id = hb.harvest_batch_id
+      )
+      GROUP BY hb.warehouse_id
+    ) raw ON raw.warehouse_id = w.warehouse_id
+    LEFT JOIN (
+      SELECT ppb.warehouse_id, SUM(ppb.production_quantity) AS total
+      FROM Packaged_Product_Batches ppb
+      GROUP BY ppb.warehouse_id
+    ) pkg ON pkg.warehouse_id = w.warehouse_id
+    ORDER BY w.warehouse_name";
+
+    $result = $this->conn->query($sql);
+    $rows = [];
+    if ($result && $result->num_rows > 0) {
+        while ($r = $result->fetch_assoc()) {
+            $rows[] = $r;
+        }
+    }
+    return $rows;
+}
+
+
+
+    // Get all factories for dropdown
+    public function getAllFactories() {
+        $sql = "SELECT factory_id, factory_name FROM Factories ORDER BY factory_name";
         $result = $this->conn->query($sql);
-        $rows = [];
+        $factories = [];
+        
         if ($result && $result->num_rows > 0) {
             while($row = $result->fetch_assoc()) {
-                $rows[] = $row;
+                $factories[] = $row;
             }
         }
-        return $rows;
+        
+        return $factories;
+    }
+
+
+
+    // Create new packaged product batch
+    public function createPackagedProductBatch($harvest_batch_id, $batch_name, $factory_id, $production_date, $production_quantity, $warehouse_id) {
+    // 1) Get the source harvest batch + its batch_number
+    $stmt = $this->conn->prepare("SELECT batch_number FROM Harvest_Batches WHERE harvest_batch_id = ?");
+    $stmt->bind_param('i', $harvest_batch_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if (!$res || $res->num_rows === 0) { $stmt->close(); return false; }
+    $hb = $res->fetch_assoc();
+    $stmt->close();
+
+    // 2) Enforce one-to-one: not already used
+    $stmt = $this->conn->prepare("SELECT 1 FROM Packaged_Product_Batches WHERE harvest_batch_id = ?");
+    $stmt->bind_param('i', $harvest_batch_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res && $res->num_rows > 0) { $stmt->close(); return ['error' => 'This harvest batch is already packaged.']; }
+    $stmt->close();
+
+    // 3) Insert, keeping batch_number aligned
+    $stmt = $this->conn->prepare("
+        INSERT INTO Packaged_Product_Batches
+        (harvest_batch_id, batch_number, batch_name, factory_id, production_date, production_quantity, warehouse_id)
+        VALUES (?,?,?,?,?,?,?)
+    ");
+    $stmt->bind_param(
+        'issisdi',
+        $harvest_batch_id,
+        $hb['batch_number'],
+        $batch_name,
+        $factory_id,
+        $production_date,
+        $production_quantity,
+        $warehouse_id
+    );
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+
+    // Get single packaged product batch by ID
+    public function getPackagedProductBatchById($batchId) {
+        $stmt = $this->conn->prepare("SELECT 
+                    ppb.packaged_product_batch_id,
+                    ppb.batch_name,
+                    ppb.production_quantity,
+                    ppb.production_date,
+                    ppb.warehouse_id,
+                    ppb.factory_id,
+                    w.warehouse_name,
+                    f.factory_name
+                FROM Packaged_Product_Batches ppb
+                LEFT JOIN Warehouses w ON ppb.warehouse_id = w.warehouse_id
+                LEFT JOIN Factories f ON ppb.factory_id = f.factory_id
+                WHERE ppb.packaged_product_batch_id = ?");
+        
+        $stmt->bind_param("i", $batchId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $batch = $result->fetch_assoc();
+            $stmt->close();
+            return $batch;
+        }
+        
+        $stmt->close();
+        return null;
+    }
+
+    // Update packaged product batch
+    public function updatePackagedProductBatch(
+    $packaged_product_batch_id,
+    $batch_name,
+    $factory_id,
+    $production_date,
+    $production_quantity,
+    $warehouse_id,
+    $harvest_batch_id
+) {
+    // Validate HB exists
+    $stmt = $this->conn->prepare("SELECT 1 FROM Harvest_Batches WHERE harvest_batch_id = ?");
+    $stmt->bind_param('i', $harvest_batch_id);
+    $stmt->execute();
+    $stmt->store_result();
+    if ($stmt->num_rows === 0) { $stmt->close(); return false; }
+    $stmt->close();
+
+    // Enforce 1:1 link (exclude this record)
+    $stmt = $this->conn->prepare("
+        SELECT COUNT(*) FROM Packaged_Product_Batches
+        WHERE harvest_batch_id = ? AND packaged_product_batch_id <> ?
+    ");
+    $stmt->bind_param('ii', $harvest_batch_id, $packaged_product_batch_id);
+    $stmt->execute();
+    $stmt->bind_result($cnt);
+    $stmt->fetch();
+    $stmt->close();
+    if ($cnt > 0) return false;
+
+    // Update
+    $stmt = $this->conn->prepare("
+        UPDATE Packaged_Product_Batches
+        SET batch_name = ?, factory_id = ?, production_date = ?, production_quantity = ?, warehouse_id = ?, harvest_batch_id = ?
+        WHERE packaged_product_batch_id = ?
+    ");
+    $stmt->bind_param(
+        'sisdiii',
+        $batch_name,          // s
+        $factory_id,          // i
+        $production_date,     // s
+        $production_quantity, // d
+        $warehouse_id,        // i
+        $harvest_batch_id,    // i
+        $packaged_product_batch_id // i
+    );
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+}
+
+
+
+
+    // Delete packaged product batch
+    public function deletePackagedProductBatch($batchId) {
+        $stmt = $this->conn->prepare("DELETE FROM Packaged_Product_Batches WHERE packaged_product_batch_id = ?");
+        $stmt->bind_param("i", $batchId);
+        
+        $result = $stmt->execute();
+        $stmt->close();
+        return $result;
     }
 }
 ?>
