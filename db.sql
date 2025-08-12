@@ -115,7 +115,6 @@ CREATE TABLE Factories (
     FOREIGN KEY (owner_id) REFERENCES Owners(owner_id) ON DELETE CASCADE
 );
 
--- Added batch_name here
 CREATE TABLE Packaged_Product_Batches (
   packaged_product_batch_id INT AUTO_INCREMENT PRIMARY KEY,
   harvest_batch_id INT NOT NULL UNIQUE,
@@ -130,7 +129,6 @@ CREATE TABLE Packaged_Product_Batches (
   FOREIGN KEY (factory_id) REFERENCES Factories(factory_id) ON DELETE CASCADE,
   FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
 );
-
 
 CREATE TABLE Package_Products (
     packaged_product_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -242,7 +240,6 @@ CREATE TABLE Orderlines (
 );
 
 -- Sample data
-
 INSERT INTO Farmers (first_name, last_name, phone_number, email) VALUES
 ('John', 'Doe', '123-456-7890', 'john.doe@example.com'),
 ('Jane', 'Smith', '098-765-4321', 'jane.smith@example.com'),
@@ -302,14 +299,10 @@ INSERT INTO Factories (owner_id, factory_name, factory_region, harvest_received_
 (1, 'Fresh Processing Plant', 'Industrial Zone A', 1500.00),
 (2, 'Grain Mill Co.', 'Industrial Zone B', 2500.00);
 
--- Now includes batch_name
-INSERT INTO Packaged_Product_Batches
-(harvest_batch_id, factory_id, batch_number, batch_name, production_date, quantity, warehouse_id, production_quantity)
-VALUES
+INSERT INTO Packaged_Product_Batches (harvest_batch_id, factory_id, batch_number, batch_name, production_date, quantity, warehouse_id, production_quantity) VALUES
 (1, 1, 'BATCH001', 'Tomato Batch A', '2024-06-20', 200.00, 1, 200.00),
 (2, 2, 'BATCH002', 'Wheat Batch B',  '2024-07-05', 800.00, 3, 800.00),
 (3, 1, 'BATCH003', 'Apple Batch C',  '2024-09-05', 350.00, 2, 350.00);
-
 
 INSERT INTO Package_Products (packaged_product_batch_id, product_name, storage_requirements, packaging_details) VALUES
 (1, 'Canned Tomatoes', 'Cool Dry Place', 'Metal Can'),
@@ -328,10 +321,17 @@ INSERT INTO Drivers (first_name, last_name, phone_number) VALUES
 ('Michael', 'Taylor', '999-000-1111'),
 ('Sophia', 'Harris', '123-456-7890');
 
-INSERT INTO Transports (driver_id, vehicle_type, vehicle_capacity, current_capacity) VALUES
-(1, 'Truck', 5000.00, 0.00),
-(2, 'Van', 2000.00, 0.00),
-(3, 'Refrigerated Truck', 3000.00, 0.00);
+INSERT INTO Transports (driver_id, vehicle_type, vehicle_license_no, vehicle_capacity, current_capacity) VALUES
+(1, 'Truck', 'TRK-001', 5000.00, 0.00),
+(2, 'Van', 'VAN-002', 2000.00, 0.00),
+(3, 'Refrigerated Truck', 'REF-003', 3000.00, 0.00);
+
+-- ✅ Fixed Shipments IDs
+INSERT INTO Shipments (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status, transportation_cost) VALUES
+(1, 2, NULL, '2025-08-10', 'Dhaka, Bangladesh', 'In Transit', 2500.00),
+(2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'Pending', 4000.00),
+(3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'Delivered', 1800.00),
+(1, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
 
 INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, issue_date, issued_by, file_path, approval_status, notes) VALUES
 (1, 'Invoice', 'INV-001', '2024-06-17', 'Admin', '/invoices/INV-001.pdf', 'Approved', 'Initial shipment invoice'),
