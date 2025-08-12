@@ -44,6 +44,7 @@ class AnalyticsHandler {
     }
 
     public function addDelivery($data) {
+        $vehicleLicense = $data['vehicle_license_no'] ?? null; // optional
         $stmt = $this->conn->prepare("
             INSERT INTO Deliveries (
                 vehicle_license_no, 
@@ -58,7 +59,7 @@ class AnalyticsHandler {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->bind_param("ssssssiss", 
-            $data['vehicle_license_no'],
+            $vehicleLicense,
             $data['delivery_date'],
             $data['delivery_time'],
             $data['delivery_man_name'],
@@ -75,6 +76,7 @@ class AnalyticsHandler {
     }
 
     public function updateDelivery($id, $data) {
+        $vehicleLicense = $data['vehicle_license_no'] ?? null; // optional
         $stmt = $this->conn->prepare("
             UPDATE Deliveries SET 
                 vehicle_license_no = ?, 
@@ -89,7 +91,7 @@ class AnalyticsHandler {
             WHERE delivery_id = ?
         ");
         $stmt->bind_param("ssssssissi", 
-            $data['vehicle_license_no'],
+            $vehicleLicense,
             $data['delivery_date'],
             $data['delivery_time'],
             $data['delivery_man_name'],
@@ -131,6 +133,7 @@ class AnalyticsHandler {
         $sql = "
         SELECT 
             t.transport_id,
+            t.driver_id,
             t.vehicle_license_no,
             t.vehicle_type,
             t.vehicle_capacity,
@@ -160,7 +163,32 @@ class AnalyticsHandler {
         return $transports;
     }
 
+    private function assertUniqueVehicleLicense(?string $vehicleLicense, ?int $ignoreTransportId = null): void {
+        if ($vehicleLicense === null || $vehicleLicense === '') return;
+        $sql = "SELECT transport_id FROM Transports WHERE vehicle_license_no = ?" . ($ignoreTransportId ? " AND transport_id <> ?" : "");
+        $stmt = $this->conn->prepare($sql);
+        if ($ignoreTransportId) {
+            $stmt->bind_param("si", $vehicleLicense, $ignoreTransportId);
+        } else {
+            $stmt->bind_param("s", $vehicleLicense);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $exists = $res && $res->num_rows > 0;
+        $stmt->close();
+        if ($exists) {
+            throw new Exception('Vehicle license already exists. It must be unique.');
+        }
+    }
+
     public function addTransport($data) {
+        // Validate license format (e.g., ABC-123 or ABC-1234)
+        $vehicleLicense = strtoupper(trim($data['vehicle_license_no']));
+        if (!preg_match('/^[A-Z]{3}-\d{3,4}$/', $vehicleLicense)) {
+            throw new Exception('Invalid vehicle license format. Use ABC-123 or ABC-1234');
+        }
+        $this->assertUniqueVehicleLicense($vehicleLicense, null);
+
         $stmt = $this->conn->prepare("
             INSERT INTO Transports (
                 driver_id, 
@@ -173,7 +201,7 @@ class AnalyticsHandler {
         $stmt->bind_param("issds", 
             $data['driver_id'],
             $data['vehicle_type'],
-            $data['vehicle_license_no'],
+            $vehicleLicense,
             $data['vehicle_capacity'],
             $data['vehicle_status']
         );
@@ -184,6 +212,12 @@ class AnalyticsHandler {
     }
 
     public function updateTransport($id, $data) {
+        $vehicleLicense = strtoupper(trim($data['vehicle_license_no']));
+        if (!preg_match('/^[A-Z]{3}-\d{3,4}$/', $vehicleLicense)) {
+            throw new Exception('Invalid vehicle license format. Use ABC-123 or ABC-1234');
+        }
+        $this->assertUniqueVehicleLicense($vehicleLicense, $id);
+
         $stmt = $this->conn->prepare("
             UPDATE Transports SET 
                 driver_id = ?, 
@@ -196,7 +230,7 @@ class AnalyticsHandler {
         $stmt->bind_param("issdsi", 
             $data['driver_id'],
             $data['vehicle_type'],
-            $data['vehicle_license_no'],
+            $vehicleLicense,
             $data['vehicle_capacity'],
             $data['vehicle_status'],
             $id
@@ -280,7 +314,7 @@ class AnalyticsHandler {
     public function getKPIs() {
         $kpis = [];
         
-        // Delivery KPIs
+        // Delivery KPIs (on-time/late/success + spoilage)
         $sql = "SELECT 
             COUNT(*) as total_deliveries,
             SUM(CASE WHEN delivery_status = 'on time' THEN 1 ELSE 0 END) as on_time_deliveries,
@@ -299,11 +333,7 @@ class AnalyticsHandler {
         $kpis['unsuccessful_deliveries'] = (int)$row['unsuccessful_deliveries'];
         $kpis['total_spoilage'] = (int)$row['total_spoilage'];
         
-        // Calculate delivery success rate
-        $kpis['delivery_success_rate'] = $kpis['total_deliveries'] > 0 ? 
-            round(($kpis['successful_deliveries'] / $kpis['total_deliveries']) * 100, 2) : 0;
-        
-        // Transport KPIs
+        // Transport KPIs + Carrier reliability based on Shipments delivered
         $sql = "SELECT 
             COUNT(*) as total_transports,
             SUM(CASE WHEN vehicle_status = 'available' THEN 1 ELSE 0 END) as available_vehicles,
@@ -319,9 +349,17 @@ class AnalyticsHandler {
         $kpis['in_use_vehicles'] = (int)$row['in_use_vehicles'];
         $kpis['needs_repair_vehicles'] = (int)$row['needs_repair_vehicles'];
         $kpis['under_maintenance_vehicles'] = (int)$row['under_maintenance_vehicles'];
-        
-        // Overall carrier reliability (based on successful deliveries)
-        $kpis['carrier_reliability'] = $kpis['delivery_success_rate'];
+
+        // Overall carrier reliability from shipments
+        $sql = "SELECT 
+            COUNT(*) AS total_shipments,
+            SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) AS delivered_shipments
+        FROM Shipments";
+        $res = $this->conn->query($sql);
+        $ship = $res->fetch_assoc();
+        $totalShipments = (int)$ship['total_shipments'];
+        $deliveredShipments = (int)$ship['delivered_shipments'];
+        $kpis['carrier_reliability'] = $totalShipments > 0 ? round(($deliveredShipments / $totalShipments) * 100, 2) : 0;
         
         return $kpis;
     }

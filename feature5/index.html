@@ -7,32 +7,32 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{
+        :root {
             /* Dark Jungle Green theme */
-            --primary:#1A2421;        /* Dark Jungle Green */
-            --primary-600:#20332E;    /* Slightly lighter */
-            --primary-700:#0F1916;    /* Deeper shade */
-
-            --bg:#F4F8F6;             /* soft light backdrop */
-            --bg-2:#ECF3F0;
-            --surface:#FFFFFF;
-            --ink:#1D2523;            /* readable dark text */
-            --muted:#6E7F7A;          /* muted text */
-
-            --accent:#9FE6C9;         /* soft mint accent for highlights */
-            --teal:#2DD4BF;           /* teal accent */
-            --amber:#F4C95D;
-
-            --border:#E2ECE8;
-            --ring:#1A242133;
-
+            --primary: #1A2421;        /* Dark Jungle Green */
+            --primary-600: #20332E;    /* Slightly lighter */
+            --primary-700: #0F1916;    /* Deeper shade */
+            
+            --bg: #F4F8F6;             /* soft light backdrop */
+            --bg-2: #ECF3F0;
+            --surface: #FFFFFF;
+            --ink: #1D2523;            /* readable dark text */
+            --muted: #6E7F7A;          /* muted text */
+            
+            --accent: #9FE6C9;         /* soft mint accent for highlights */
+            --teal: #2DD4BF;           /* teal accent */
+            --amber: #F4C95D;
+            
+            --border: #E2ECE8;
+            --ring: #1A242133;
+            
             --radius: 14px;
             --radius-lg: 20px;
-
+            
             --shadow-sm: 0 8px 22px rgba(26, 36, 33, .08);
             --shadow-md: 0 16px 44px rgba(26, 36, 33, .12);
             --shadow-lg: 0 26px 70px rgba(26, 36, 33, .18);
-
+            
             --transition: all .28s ease;
         }
 
@@ -45,12 +45,12 @@
         body {
             font-family: 'Inter', sans-serif;
             color: var(--ink);
-            background:
-              radial-gradient(1200px 800px at 10% -10%, #0C1714, transparent 55%),
-              radial-gradient(1000px 700px at 120% 0%, #0E1C18, transparent 60%),
-              linear-gradient(180deg, #0F1916 0%, #1A2421 100%); /* Dark Jungle Green gradient */
-            background-color: #0F1916; /* Fallback */
+            background: radial-gradient(1200px 800px at 10% -10%, #0C1714, transparent 55%),
+                        radial-gradient(1000px 700px at 120% 0%, #0E1C18, transparent 60%),
+                        linear-gradient(180deg, #0F1916 0%, #1A2421 100%);
+            background-color: #0F1916;
             min-height: 100vh;
+            padding: 20px;
             color-scheme: dark;
         }
 
@@ -62,16 +62,14 @@
             border: 1px solid var(--border);
             box-shadow: var(--shadow-lg);
             overflow: hidden;
-            padding: 0;
         }
 
         .header {
-            background:
-                radial-gradient(140% 120% at 100% 0%, #2F4A43, transparent 60%),
-                linear-gradient(120deg, var(--primary) 0%, var(--primary-600) 100%);
-            color:#fff;
+            background: radial-gradient(140% 120% at 100% 0%, #2F4A43, transparent 60%),
+                        linear-gradient(120deg, var(--primary) 0%, var(--primary-600) 100%);
+            color: #fff;
             padding: 36px 30px;
-            text-align:center;
+            text-align: center;
             position: relative;
             overflow: hidden;
             margin-bottom: 0;
@@ -129,7 +127,9 @@
             font-weight: 800;
             margin-bottom: 6px;
             background: linear-gradient(90deg, var(--accent), #1f8577);
-            -webkit-background-clip: text; background-clip: text; color: transparent;
+            -webkit-background-clip: text; 
+            background-clip: text; 
+            color: transparent;
         }
 
         .stat-card .label {
@@ -267,181 +267,6 @@
             transform: translateY(-1px);
         }
 
-        .alerts-section {
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .alerts-section h3 {
-            color: var(--primary-600);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .alerts-container {
-            display: grid;
-            gap: 10px;
-        }
-
-        .alert-item {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .alert-info {
-            flex: 1;
-        }
-
-        .alert-message {
-            font-weight: 500;
-            color: var(--ink);
-            margin-bottom: 5px;
-        }
-
-        .alert-details {
-            font-size: 0.9rem;
-            color: var(--muted);
-        }
-
-        .active-transports-summary {
-            margin-bottom: 30px;
-        }
-
-        .active-transports-summary h3 {
-            color: var(--primary-600);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .transports-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .transport-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
-        }
-
-        .transport-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .transport-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .transport-id {
-            font-weight: 600;
-            color: var(--ink);
-        }
-
-        .transport-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .status-normal {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .status-warning {
-            background: #fef5e7;
-            color: #744210;
-        }
-
-        .status-danger {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-
-        .transport-details {
-            display: grid;
-            gap: 8px;
-            font-size: 0.9rem;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .detail-label {
-            color: var(--muted);
-        }
-
-        .detail-value {
-            color: var(--ink);
-            font-weight: 500;
-        }
-
-        .table-container {
-            overflow-x: auto;
-            border-radius: 15px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .table-header h3 {
-            color: var(--primary-600);
-            font-size: 1.3rem;
-        }
-
-        .table-controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .search-input, .filter-select {
-            padding: 12px 14px;
-            border: 1.8px solid #DEEAE6;
-            border-radius: 12px;
-            font-size: 14px;
-            transition: var(--transition);
-            background: #fff;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
-            color: var(--ink);
-        }
-
-        .search-input:focus, .filter-select:focus {
-            outline: none;
-            border-color: var(--primary-600);
-            box-shadow: 0 0 0 4px var(--ring);
-        }
-
         .loading-indicator {
             display: none;
             text-align: center;
@@ -462,9 +287,8 @@
         }
 
         .data-table th {
-            background:
-                linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0)),
-                linear-gradient(120deg, var(--primary) 0%, var(--primary-600) 100%);
+            background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0)),
+                        linear-gradient(120deg, var(--primary) 0%, var(--primary-600) 100%);
             color: #F7FFFD;
             padding: 18px 15px;
             text-align: left;
@@ -739,10 +563,6 @@
                 font-size: 1.5rem;
             }
 
-            .transports-grid {
-                grid-template-columns: 1fr;
-            }
-
             .table-header {
                 flex-direction: column;
                 align-items: stretch;
@@ -787,25 +607,15 @@
         <!-- Header -->
         <div class="header">
             <h1><i class="fas fa-thermometer-half"></i> Temperature/Humidity Control System</h1>
-            <p>Monitor and manage temperature and humidity conditions during transport to ensure optimal preservation of perishable goods</p>
+            <p>Monitor and manage temperature and humidity conditions to ensure optimal preservation of perishable goods</p>
         </div>
 
         <!-- Statistics Dashboard -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <div class="icon"><i class="fas fa-truck"></i></div>
-                <div class="number" id="totalTransports">0</div>
-                <div class="label">Active Transports</div>
-            </div>
-            <div class="stat-card">
                 <div class="icon"><i class="fas fa-microchip"></i></div>
                 <div class="number" id="totalSensors">0</div>
                 <div class="label">Active Sensors</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon"><i class="fas fa-shipping-fast"></i></div>
-                <div class="number" id="activeShipments">0</div>
-                <div class="label">Active Shipments</div>
             </div>
             <div class="stat-card">
                 <div class="icon"><i class="fas fa-database"></i></div>
@@ -826,100 +636,18 @@
 
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
-            <button class="nav-tab active" data-tab="transport-monitoring">
-                <i class="fas fa-truck"></i>
-                Transport Monitoring
+            <button class="nav-tab active" data-tab="sensors">
+                <i class="fas fa-microchip"></i>
+                Sensors
             </button>
             <button class="nav-tab" data-tab="sensor-data">
                 <i class="fas fa-database"></i>
                 Sensor Data
             </button>
-            <button class="nav-tab" data-tab="sensors">
-                <i class="fas fa-microchip"></i>
-                Sensors
-            </button>
             <button class="nav-tab" data-tab="alerts">
                 <i class="fas fa-exclamation-triangle"></i>
                 Alerts
             </button>
-        </div>
-
-        <!-- Transport Monitoring Tab (Main Feature) -->
-        <div id="transport-monitoring" class="tab-content active">
-            <div class="section-header">
-                <h2>
-                    <i class="fas fa-truck"></i>
-                    Transport Monitoring - Perishable Goods
-                </h2>
-                <p>Real-time monitoring of temperature and humidity conditions during transport to ensure optimal preservation of perishable goods</p>
-                <div class="section-actions">
-                    <button class="btn btn-primary" onclick="refreshTransportMonitoring()">
-                        <i class="fas fa-sync-alt"></i>
-                        Refresh Data
-                    </button>
-                    <button class="btn btn-secondary" onclick="exportTransportData()">
-                        <i class="fas fa-download"></i>
-                        Export Report
-                    </button>
-                </div>
-            </div>
-
-            <!-- Critical Alerts Section -->
-            <div class="alerts-section">
-                <h3><i class="fas fa-exclamation-triangle"></i> Critical Alerts</h3>
-                <div id="criticalAlertsContainer" class="alerts-container">
-                    <!-- Critical alerts will be loaded here -->
-                </div>
-            </div>
-
-            <!-- Active Transports Summary -->
-            <div class="active-transports-summary">
-                <h3><i class="fas fa-truck-moving"></i> Active Transports Summary</h3>
-                <div id="activeTransportsGrid" class="transports-grid">
-                    <!-- Active transport cards will be loaded here -->
-                </div>
-            </div>
-
-            <!-- Detailed Transport Monitoring Table -->
-            <div class="table-container">
-                <div class="table-header">
-                    <h3>Detailed Transport Monitoring</h3>
-                    <div class="table-controls">
-                        <input type="text" id="transportMonitoringSearch" placeholder="Search transports, destinations, drivers..." class="search-input">
-                        <select id="statusFilter" class="filter-select">
-                            <option value="">All Statuses</option>
-                            <option value="normal">Normal</option>
-                            <option value="warning">Warning</option>
-                            <option value="danger">Critical</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="loading-indicator" id="transportMonitoringLoading">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <span>Loading transport monitoring data...</span>
-                </div>
-                
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Transport ID</th>
-                            <th>Vehicle</th>
-                            <th>Driver</th>
-                            <th>Destination</th>
-                            <th>Shipment Status</th>
-                            <th>Temperature</th>
-                            <th>Humidity</th>
-                            <th>Condition Status</th>
-                            <th>Last Reading</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transportMonitoringTableBody">
-                        <!-- Transport monitoring data will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
         </div>
 
         <!-- Sensor Data Tab -->
@@ -928,10 +656,6 @@
                 <h2>Sensor Data Management</h2>
                 <div class="section-actions">
                     <input type="text" id="sensorDataSearch" placeholder="Search sensor data..." class="search-input">
-                    <button class="btn btn-primary" onclick="openAddSensorDataModal()">
-                        <i class="fas fa-plus"></i>
-                        Add Sensor Data
-                    </button>
                 </div>
             </div>
             
@@ -943,13 +667,10 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Timestamp</th>
                         <th>Temperature</th>
                         <th>Humidity</th>
-                        <th>Sensor Type</th>
-                        <th>Vehicle</th>
-                        <th>Driver</th>
+                        <th>Location</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -960,7 +681,7 @@
         </div>
 
         <!-- Sensors Tab -->
-        <div id="sensors" class="tab-content">
+        <div id="sensors" class="tab-content active">
             <div class="section-header">
                 <h2>Sensor Management</h2>
                 <div class="section-actions">
@@ -982,8 +703,7 @@
                         <th>ID</th>
                         <th>Type</th>
                         <th>Warehouse</th>
-                        <th>Transport</th>
-                        <th>Driver</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -1017,10 +737,7 @@
                         <th>Alert Type</th>
                         <th>Temperature</th>
                         <th>Humidity</th>
-                        <th>Vehicle</th>
-                        <th>Driver</th>
-                        <th>Destination</th>
-                        
+                        <th>Location</th>
                     </tr>
                 </thead>
                 <tbody id="alertsTableBody">
@@ -1033,4 +750,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-

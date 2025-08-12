@@ -42,7 +42,6 @@ function loadAll() {
     // Load chart data after a short delay to ensure data is available
     setTimeout(() => {
         updateSpoilageChart();
-        updateReliabilityChart();
     }, 500);
 }
 
@@ -142,11 +141,13 @@ function openDeliveryModal(id = null) {
         const delivery = deliveries.find(d => d.delivery_id == id);
         if (delivery) {
             populateDeliveryForm(delivery);
+            form.dataset.deliveryId = String(id);
         }
     } else {
         // Add mode
         title.textContent = 'Add New Delivery';
         form.reset();
+        delete form.dataset.deliveryId;
     }
     
     modal.style.display = 'block';
@@ -157,7 +158,6 @@ function closeDeliveryModal() {
 }
 
 function populateDeliveryForm(delivery) {
-    document.getElementById('vehicleLicenseNo').value = delivery.vehicle_license_no || '';
     document.getElementById('deliveryDate').value = delivery.delivery_date || '';
     document.getElementById('expectedTime').value = delivery.expected_time || '';
     document.getElementById('deliveredTime').value = delivery.delivered_time || '';
@@ -172,9 +172,9 @@ function editDelivery(id) {
 }
 
 function saveDelivery() {
+    const form = document.getElementById('deliveryForm');
     const formData = {
-        action: document.getElementById('deliveryModalTitle').textContent.includes('Edit') ? 'update_delivery' : 'add_delivery',
-        vehicle_license_no: document.getElementById('vehicleLicenseNo').value,
+        action: form.dataset.deliveryId ? 'update_delivery' : 'add_delivery',
         delivery_date: document.getElementById('deliveryDate').value,
         delivery_time: document.getElementById('deliveredTime').value,
         delivery_man_name: document.getElementById('deliveryManName').value,
@@ -184,17 +184,8 @@ function saveDelivery() {
         delivery_status: document.getElementById('deliveryStatus').value,
         delivery_success: document.getElementById('deliverySuccess').value
     };
-    
-    // If editing, add the ID
-    if (formData.action === 'update_delivery') {
-        const deliveryId = deliveries.find(d => 
-            d.vehicle_license_no === formData.vehicle_license_no &&
-            d.delivery_date === formData.delivery_date &&
-            d.delivery_man_name === formData.delivery_man_name
-        )?.delivery_id;
-        if (deliveryId) {
-            formData.delivery_id = deliveryId;
-        }
+    if (form.dataset.deliveryId) {
+        formData.delivery_id = parseInt(form.dataset.deliveryId);
     }
     
     fetch('api.php', {
@@ -228,7 +219,7 @@ function deleteDelivery(id) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            loadAll();
+        loadAll();
         } else {
             alert('Error deleting delivery: ' + (data.error || 'Unknown error'));
         }
@@ -298,18 +289,20 @@ function openTransportModal(id = null) {
     const title = document.getElementById('transportModalTitle');
     const form = document.getElementById('transportForm');
     
+    populateAllDropdowns();
     if (id) {
         // Edit mode
         title.textContent = 'Edit Transport';
         const transport = transports.find(t => t.transport_id == id);
         if (transport) {
             populateTransportForm(transport);
+            form.dataset.transportId = String(id);
         }
     } else {
         // Add mode
         title.textContent = 'Add New Transport';
         form.reset();
-        populateAllDropdowns();
+        delete form.dataset.transportId;
     }
     
     modal.style.display = 'block';
@@ -325,7 +318,6 @@ function populateTransportForm(transport) {
     document.getElementById('vehicleLicenseNo').value = transport.vehicle_license_no || '';
     document.getElementById('vehicleCapacity').value = transport.vehicle_capacity || '';
     document.getElementById('vehicleStatus').value = transport.vehicle_status || '';
-    populateAllDropdowns();
 }
 
 function editTransport(id) {
@@ -333,43 +325,27 @@ function editTransport(id) {
 }
 
 function saveTransport() {
-    const formData = {
-        action: document.getElementById('transportModalTitle').textContent.includes('Edit') ? 'update_transport' : 'add_transport',
+    const form = document.getElementById('transportForm');
+    const license = (document.getElementById('vehicleLicenseNo').value || '').toUpperCase().trim();
+    const licenseFormat = /^[A-Z]{3}-\d{3,4}$/;
+    if (!licenseFormat.test(license)) { alert('Invalid vehicle license format. Use ABC-123 or ABC-1234'); return; }
+    if (!form.dataset.transportId && transports.some(t => (t.vehicle_license_no||'').toUpperCase() === license)) {
+        alert('Vehicle license already exists. It must be unique.');
+        return;
+    }
+    const payload = {
+        action: form.dataset.transportId ? 'update_transport' : 'add_transport',
         driver_id: parseInt(document.getElementById('driverId').value),
         vehicle_type: document.getElementById('vehicleType').value,
-        vehicle_license_no: document.getElementById('vehicleLicenseNo').value,
+        vehicle_license_no: license,
         vehicle_capacity: parseFloat(document.getElementById('vehicleCapacity').value),
         vehicle_status: document.getElementById('vehicleStatus').value
     };
-    
-    // If editing, add the ID
-    if (formData.action === 'update_transport') {
-        const transportId = transports.find(t => 
-            t.vehicle_license_no === formData.vehicle_license_no
-        )?.transport_id;
-        if (transportId) {
-            formData.transport_id = transportId;
-        }
-    }
-    
-    fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            closeTransportModal();
-        loadAll();
-        } else {
-            alert('Error saving transport: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error saving transport');
-    });
+    if (form.dataset.transportId) payload.transport_id = parseInt(form.dataset.transportId);
+    fetch('api.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+      .then(async res => { const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.error||'Failed'); return data; })
+      .then(() => { closeTransportModal(); fetchTransports(); fetchKPIs(); })
+      .catch(err => alert(err.message));
 }
 
 function deleteTransport(id) {
@@ -527,15 +503,6 @@ function updateSpoilageChart() {
         .catch(error => console.error('Error fetching spoilage chart data:', error));
 }
 
-function updateReliabilityChart() {
-    fetch('api.php?action=reliability_chart')
-        .then(res => res.json())
-        .then(data => {
-            renderReliabilityChart(data);
-        })
-        .catch(error => console.error('Error fetching reliability chart data:', error));
-}
-
 function renderDeliveryChart(data) {
     const ctx = document.getElementById('deliveryChart').getContext('2d');
     
@@ -638,57 +605,12 @@ function renderSpoilageChart(data) {
     });
 }
 
-function renderReliabilityChart(data) {
-    const ctx = document.getElementById('reliabilityChart').getContext('2d');
-    
-    if (charts.reliability) charts.reliability.destroy();
-    
-    charts.reliability = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.map(item => item.month),
-            datasets: [{
-                label: 'Reliability %',
-                data: data.map(item => item.reliability),
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
-                }
-            },
-            layout: {
-                padding: 20
-            }
-        }
-    });
-}
 
 // ===== SEARCH AND FILTER FUNCTIONS =====
 
 function searchDeliveries() {
     const searchTerm = document.getElementById('deliverySearch').value.toLowerCase();
     const filteredDeliveries = deliveries.filter(delivery => 
-        delivery.vehicle_license_no?.toLowerCase().includes(searchTerm) ||
         delivery.delivery_man_name?.toLowerCase().includes(searchTerm) ||
         delivery.delivery_status?.toLowerCase().includes(searchTerm) ||
         delivery.delivery_success?.toLowerCase().includes(searchTerm)

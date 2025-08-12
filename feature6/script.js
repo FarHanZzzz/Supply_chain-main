@@ -480,10 +480,22 @@ async function deleteDocument(documentId) {
 
 // CORRECTED SEARCH DOCUMENTS FUNCTION
 async function searchDocuments() {
-    const searchTerm = document.getElementById('searchInput').value.trim();
+    let searchTerm = document.getElementById('searchInput').value.trim();
+    
+    // Preprocess search term to handle document IDs more flexibly
+    if (searchTerm) {
+        // Remove DOC- prefix if present for ID searches
+        if (searchTerm.toUpperCase().startsWith('DOC-')) {
+            searchTerm = searchTerm.substring(4);
+        }
+        
+        // Convert numeric IDs to padded format (00123) for better matching
+        if (/^\d+$/.test(searchTerm)) {
+            searchTerm = searchTerm.padStart(5, '0');
+        }
+    }
     
     if (!searchTerm) {
-        // If search is empty, load all documents
         loadDocuments();
         return;
     }
