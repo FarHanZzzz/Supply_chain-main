@@ -35,6 +35,13 @@ function showTab(tabName) {
     document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
 }
 
+function formatCurrency(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '—';
+  return n.toFixed(2);
+}
+
 // Load shipments data
 async function loadShipments() {
     try {
@@ -146,12 +153,22 @@ function displayShipments(shipments) {
             <td>${shipment.vehicle_type}</td>
             <td>${shipment.driver_name}</td>
             <td>${productInfo}</td>
+            <td>${formatCurrency(shipment.transportation_cost)}</td>  <!-- NEW -->
             <td>
                 <button class="btn-view" onclick="viewShipment(${shipment.shipment_id})">View</button>
-                <button class="btn-edit" onclick="editShipment(${shipment.shipment_id},${shipment.transport_id ?? 'null'},'${shipment.shipment_date}','${shipment.shipment_destination?.replace(/'/g, "\\'") || ''}','${shipment.status}',${shipment.harvest_batch_id ?? 'null'},${shipment.packaged_product_batch_id ?? 'null'})">Edit</button>
+                <button class="btn-edit" onclick="editShipment(
+                ${shipment.shipment_id},
+                ${shipment.transport_id ?? 'null'},
+                '${shipment.shipment_date}',
+                '${(shipment.shipment_destination ?? '').replace(/'/g, "\\'")}',
+                '${shipment.status}',
+                ${shipment.harvest_batch_id ?? 'null'},
+                ${shipment.packaged_product_batch_id ?? 'null'},
+                ${shipment.transportation_cost ?? 'null'}          // NEW
+                )">Edit</button>
                 <button class="btn-delete" onclick="deleteShipment(${shipment.shipment_id})">Delete</button>
             </td>
-        `;
+            `;
     });
 }
 
@@ -339,6 +356,7 @@ function toYMD(d) {
     return ''; // let the control stay empty if unknown
 }
 
+// script.js → extend the signature to include transportationCost (last param), defaulting to null
 async function editShipment(
   shipmentId,
   transportId,
@@ -346,33 +364,27 @@ async function editShipment(
   destination,
   status,
   harvestBatchId = null,
-  packagedBatchId = null
+  packagedBatchId = null,
+  transportationCost = null        // NEW
 ) {
   currentEditingShipment = shipmentId;
   document.getElementById('shipmentModalTitle').textContent = 'Edit Shipment';
   document.getElementById('shipmentForm').reset();
 
-  // Build the dropdowns first, then set values
   await loadAvailableTransports(transportId);
-
-  // Ensure harvest & packaged lists are loaded, then set their values
   await loadHarvestBatches();
-  if (harvestBatchId) {
-    document.getElementById('harvestBatchSelect').value = String(harvestBatchId);
-  }
-
+  if (harvestBatchId) document.getElementById('harvestBatchSelect').value = String(harvestBatchId);
   await loadPackagedBatches();
-  if (packagedBatchId) {
-    document.getElementById('packagedBatchSelect').value = String(packagedBatchId);
-  }
+  if (packagedBatchId) document.getElementById('packagedBatchSelect').value = String(packagedBatchId);
 
-  // Set the simple fields
   document.getElementById('shipmentDate').value = toYMD(shipmentDate);
   document.getElementById('shipmentDestination').value = destination ?? '';
   document.getElementById('shipmentStatus').value = status ?? '';
+  document.getElementById('transportationCost').value = transportationCost ?? '';  // NEW
 
   document.getElementById('shipmentModal').style.display = 'block';
 }
+
 
 
 async function editTransport(transportId, driverId, vehicleType, vehicleCapacity, currentCapacity) {
@@ -406,6 +418,13 @@ async function saveShipment() {
     const shipmentDate = document.getElementById('shipmentDate').value;
     const destination = document.getElementById('shipmentDestination').value;
     const status = document.getElementById('shipmentStatus').value;
+    const transportationCostRaw = document.getElementById('transportationCost').value;
+    const transportationCost = transportationCostRaw !== '' ? parseFloat(transportationCostRaw) : null;
+    
+    if (transportationCost !== null && (Number.isNaN(transportationCost) || transportationCost < 0)) {
+    alert('Transportation cost must be a non-negative number.');
+    return;
+    }
     
     if (!transportId || !shipmentDate || !destination || !status) {
         alert('Please fill in all required fields');
@@ -413,18 +432,17 @@ async function saveShipment() {
     }
     
     const data = {
-        action: currentEditingShipment ? 'update_shipment' : 'add_shipment',
-        transport_id: parseInt(transportId),
-        harvest_batch_id: harvestBatchId ? parseInt(harvestBatchId) : null,
-        packaged_product_batch_id: packagedBatchId ? parseInt(packagedBatchId) : null,
-        shipment_date: shipmentDate,
-        shipment_destination: destination,
-        status: status
+    action: currentEditingShipment ? 'update_shipment' : 'add_shipment',
+    transport_id: parseInt(transportId),
+    harvest_batch_id: harvestBatchId ? parseInt(harvestBatchId) : null,
+    packaged_product_batch_id: packagedBatchId ? parseInt(packagedBatchId) : null,
+    shipment_date: shipmentDate,
+    shipment_destination: destination,
+    status: status,
+    transportation_cost: transportationCost   // NEW
     };
-    
-    if (currentEditingShipment) {
-        data.shipment_id = currentEditingShipment;
-    }
+
+    if (currentEditingShipment) data.shipment_id = currentEditingShipment;
     
     try {
         const response = await fetch('api.php', {

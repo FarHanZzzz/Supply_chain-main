@@ -11,31 +11,34 @@ class TransportationPlanningHandler {
     
     // Get all shipments with transportation details
     public function getAllShipments() {
-        $sql = "SELECT 
-                    s.shipment_id,
-                    s.shipment_date,
-                    s.shipment_destination,
-                    s.status,
-                    s.transport_id,
-                    s.harvest_batch_id,
-                    s.packaged_product_batch_id,
-                    t.vehicle_type,
-                    t.vehicle_capacity,
-                    t.current_capacity,
-                    CONCAT(d.first_name, ' ', d.last_name) as driver_name,
-                    d.phone_number as driver_phone,
-                    h.harvest_name,
-                    pp.product_name
-                FROM Shipments s
-                JOIN Transports t ON s.transport_id = t.transport_id
-                JOIN Drivers d ON t.driver_id = d.driver_id
-                LEFT JOIN Harvest_Batches hb ON s.harvest_batch_id = hb.harvest_batch_id
-                LEFT JOIN Harvests h ON hb.harvest_id = h.harvest_id
-                LEFT JOIN Packaged_Product_Batches ppb ON s.packaged_product_batch_id = ppb.packaged_product_batch_id
-                LEFT JOIN Package_Products pp ON ppb.packaged_product_batch_id = pp.packaged_product_batch_id
-                ORDER BY s.shipment_date DESC";
+        $sql = "
+            SELECT
+                s.shipment_id,
+                s.shipment_date,
+                s.shipment_destination,
+                s.status,
+                s.transport_id,
+                s.harvest_batch_id,
+                s.packaged_product_batch_id,
+                s.transportation_cost,
+                t.vehicle_type,
+                CONCAT(d.first_name, ' ', d.last_name) AS driver_name,   -- FIX 1
+                h.harvest_name,                                          -- FIX 2 (via join to Harvests)
+                pp.product_name
+            FROM Shipments s
+            JOIN Transports t ON s.transport_id = t.transport_id
+            JOIN Drivers d ON t.driver_id = d.driver_id
+            LEFT JOIN Harvest_Batches hb ON s.harvest_batch_id = hb.harvest_batch_id
+            LEFT JOIN Harvests h ON hb.harvest_id = h.harvest_id          -- FIX 2
+            LEFT JOIN Packaged_Product_Batches ppb ON s.packaged_product_batch_id = ppb.packaged_product_batch_id
+            LEFT JOIN Package_Products pp ON ppb.packaged_product_batch_id = pp.packaged_product_batch_id  -- FIX 3
+            ORDER BY s.shipment_date DESC
+        ";
         
         $result = $this->conn->query($sql);
+            if (!$result) {
+                return ['error' => 'SQL error: ' . $this->conn->error];
+            }
         $shipments = [];
         
         if ($result->num_rows > 0) {
@@ -74,10 +77,24 @@ class TransportationPlanningHandler {
     }
     
     // Add new shipment
-    public function addShipment($transport_id, $harvest_batch_id, $packaged_product_batch_id, $shipment_date, $shipment_destination, $status) {
-        $stmt = $this->conn->prepare("INSERT INTO Shipments (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiisss", $transport_id, $harvest_batch_id, $packaged_product_batch_id, $shipment_date, $shipment_destination, $status);
-        
+    public function addShipment($data) {
+        $cost = isset($data['transportation_cost']) ? $data['transportation_cost'] : null;
+        $stmt = $this->conn->prepare("
+            INSERT INTO Shipments
+            (transport_id, harvest_batch_id, packaged_product_batch_id,
+            shipment_date, shipment_destination, status, transportation_cost)
+            VALUES (?,?,?,?,?,?,?)
+        ");
+        $stmt->bind_param(
+            "iiisssd",
+            $data['transport_id'],
+            $data['harvest_batch_id'],
+            $data['packaged_product_batch_id'],
+            $data['shipment_date'],
+            $data['shipment_destination'],
+            $data['status'],
+            $cost
+        );
         if ($stmt->execute()) {
             $shipment_id = $this->conn->insert_id;
             $stmt->close();
@@ -104,10 +121,30 @@ class TransportationPlanningHandler {
     }
     
     // Update shipment
-    public function updateShipment($shipment_id, $transport_id, $harvest_batch_id, $packaged_product_batch_id, $shipment_date, $shipment_destination, $status) {
-        $stmt = $this->conn->prepare("UPDATE Shipments SET transport_id = ?, harvest_batch_id = ?, packaged_product_batch_id = ?, shipment_date = ?, shipment_destination = ?, status = ? WHERE shipment_id = ?");
-        $stmt->bind_param("iiisssi", $transport_id, $harvest_batch_id, $packaged_product_batch_id, $shipment_date, $shipment_destination, $status, $shipment_id);
-        
+    public function updateShipment($data) {
+        $cost = isset($data['transportation_cost']) ? $data['transportation_cost'] : null;
+        $stmt = $this->conn->prepare("
+            UPDATE Shipments
+            SET transport_id=?,
+                harvest_batch_id=?,
+                packaged_product_batch_id=?,
+                shipment_date=?,
+                shipment_destination=?,
+                status=?,
+                transportation_cost=?       -- NEW
+            WHERE shipment_id=?
+        ");
+        $stmt->bind_param(
+            "iiisssdi",
+            $data['transport_id'],
+            $data['harvest_batch_id'],
+            $data['packaged_product_batch_id'],
+            $data['shipment_date'],
+            $data['shipment_destination'],
+            $data['status'],
+            $cost,
+            $data['shipment_id']
+        );
         $result = $stmt->execute();
         $stmt->close();
         return $result;

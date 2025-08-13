@@ -332,12 +332,14 @@ INSERT INTO Transports (driver_id, vehicle_type, vehicle_license_no, vehicle_cap
 (2, 'Van', 'VAN-002', 2000.00, 0.00),
 (3, 'Refrigerated Truck', 'REF-003', 3000.00, 0.00);
 
--- ✅ Fixed Shipments IDs
-INSERT INTO Shipments (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status, transportation_cost) VALUES
-(1, 2, NULL, '2025-08-10', 'Dhaka, Bangladesh', 'In Transit', 2500.00),
-(2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'Pending', 4000.00),
-(3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'Delivered', 1800.00),
-(1, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
+-- Seed data (omit shipment_id, let it auto-increment)
+INSERT INTO Shipments
+  (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status, transportation_cost)
+VALUES
+  (1, 2, NULL, '2025-08-10', 'Dhaka, Bangladesh', 'In Transit', 2500.00),
+  (2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'Pending', 4000.00),
+  (3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'Delivered', 1800.00),
+  (1, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
 
 INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, issue_date, issued_by, file_path, approval_status, notes) VALUES
 (1, 'Invoice', 'INV-001', '2024-06-17', 'Admin', '/invoices/INV-001.pdf', 'Approved', 'Initial shipment invoice'),

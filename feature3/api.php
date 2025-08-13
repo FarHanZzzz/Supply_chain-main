@@ -58,19 +58,17 @@ switch ($method) {
         if (isset($input['action'])) {
             switch ($input['action']) {
                 case 'add_shipment':
-                    $result = $handler->addShipment(
-                        $input['transport_id'],
-                        $input['harvest_batch_id'] ?? null,
-                        $input['packaged_product_batch_id'] ?? null,
-                        $input['shipment_date'],
-                        $input['shipment_destination'],
-                        $input['status']
-                    );
-                    if ($result) {
-                        echo json_encode(['success' => true, 'id' => $result]);
-                    } else {
-                        echo json_encode(['success' => false, 'error' => 'Failed to add shipment']);
-                    }
+                    $payload = [
+                        'transport_id' => intval($input['transport_id'] ?? 0),
+                        'harvest_batch_id' => isset($input['harvest_batch_id']) && $input['harvest_batch_id'] !== '' ? intval($input['harvest_batch_id']) : null,
+                        'packaged_product_batch_id' => isset($input['packaged_product_batch_id']) && $input['packaged_product_batch_id'] !== '' ? intval($input['packaged_product_batch_id']) : null,
+                        'shipment_date' => $input['shipment_date'] ?? null,
+                        'shipment_destination' => $input['shipment_destination'] ?? null,
+                        'status' => $input['status'] ?? null,
+                        'transportation_cost' => isset($input['transportation_cost']) && $input['transportation_cost'] !== '' ? floatval($input['transportation_cost']) : null,
+                    ];
+                    $id = $handler->addShipment($payload);
+                    echo json_encode($id ? ['success' => true, 'id' => $id] : ['success' => false, 'error' => 'Failed to add shipment']);
                     break;
                 case 'add_transport':
                     $result = $handler->addTransport(
@@ -97,17 +95,20 @@ switch ($method) {
         if (isset($input['action'])) {
             switch ($input['action']) {
                 case 'update_shipment':
-                    $result = $handler->updateShipment(
-                        $input['shipment_id'],
-                        $input['transport_id'],
-                        $input['harvest_batch_id'] ?? null,
-                        $input['packaged_product_batch_id'] ?? null,
-                        $input['shipment_date'],
-                        $input['shipment_destination'],
-                        $input['status']
-                    );
-                    echo json_encode(['success' => $result]);
+                    $payload = [
+                        'shipment_id' => intval($input['shipment_id'] ?? 0),
+                        'transport_id' => intval($input['transport_id'] ?? 0),
+                        'harvest_batch_id' => isset($input['harvest_batch_id']) && $input['harvest_batch_id'] !== '' ? intval($input['harvest_batch_id']) : null,
+                        'packaged_product_batch_id' => isset($input['packaged_product_batch_id']) && $input['packaged_product_batch_id'] !== '' ? intval($input['packaged_product_batch_id']) : null,
+                        'shipment_date' => $input['shipment_date'] ?? null,
+                        'shipment_destination' => $input['shipment_destination'] ?? null,
+                        'status' => $input['status'] ?? null,
+                        'transportation_cost' => isset($input['transportation_cost']) && $input['transportation_cost'] !== '' ? floatval($input['transportation_cost']) : null,
+                    ];
+                    $ok = $handler->updateShipment($payload);
+                    echo json_encode(['success' => (bool)$ok]);
                     break;
+
                 case 'update_transport':
                     $result = $handler->updateTransport(
                         $input['transport_id'],

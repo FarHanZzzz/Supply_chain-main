@@ -371,6 +371,7 @@
           </div>
           <div class="table-container">
             <table id="shipmentsTable">
+              <!-- index.html → Shipments table header -->
               <thead>
                 <tr>
                   <th>Shipment ID</th>
@@ -380,6 +381,7 @@
                   <th>Assigned Transport</th>
                   <th>Driver</th>
                   <th>Product</th>
+                  <th>Transportation Cost</th>  <!-- NEW -->
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -436,6 +438,11 @@
             <option value="">Select Transport</option>
           </select>
         </div>
+        <!-- index.html → inside #shipmentForm, add: -->
+        <div class="form-group">
+          <label for="transportationCost">Transportation Cost</label>
+          <input type="number" id="transportationCost" step="0.01" min="0" placeholder="e.g., 2500.00">
+        </div>  
         <div class="form-group">
           <label for="harvestBatchSelect">Harvest Batch</label>
           <select id="harvestBatchSelect">
@@ -454,7 +461,14 @@
         </div>
         <div class="form-group">
           <label for="shipmentDestination">Destination *</label>
-          <input type="text" id="shipmentDestination" required>
+          <select id="shipmentDestination" required>
+            <option value="">Select Destination</option>
+            <option>Dhaka, Bangladesh</option>
+            <option>Chittagong, Bangladesh</option>
+            <option>Khulna, Bangladesh</option>
+            <option>Rajshahi, Bangladesh</option>
+            <option>Sylhet, Bangladesh</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="shipmentStatus">Status *</label>
