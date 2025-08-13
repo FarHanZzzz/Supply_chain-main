@@ -332,7 +332,7 @@ async function viewDocument(documentId) {
                     <h6>Document Details</h6>
                     <p class="mb-1"><strong>Issue Date:</strong> ${formatDate(docData.issue_date) || 'N/A'}</p>
                     <p class="mb-1"><strong>Issued By:</strong> ${docData.issued_by || 'N/A'}</p>
-                    <p class="mb-1"><strong>File:</strong> ${docData.file_path || 'No file attached'}</p>
+                   
                 </div>
             </div>
             
