@@ -21,6 +21,9 @@ switch ($method) {
                 case 'shipments':
                     echo json_encode($handler->getAllShipments());
                     break;
+                case 'shipment_progress':
+                    echo json_encode($handler->getAllShipmentProgress());
+                    break;
                 case 'transports':
                     echo json_encode($handler->getAllTransports());
                     break;
@@ -39,6 +42,9 @@ switch ($method) {
                 case 'available_transports':
                     echo json_encode($handler->getAvailableTransports());
                     break;
+                case 'routes':
+                    echo json_encode($handler->getAllRoutes());
+                    break;
                 case 'search':
                     if (isset($_GET['term'])) {
                         echo json_encode($handler->searchShipments($_GET['term']));
@@ -53,7 +59,7 @@ switch ($method) {
             echo json_encode(['error' => 'Action parameter required']);
         }
         break;
-        
+
     case 'POST':
         if (isset($input['action'])) {
             switch ($input['action']) {
@@ -65,11 +71,12 @@ switch ($method) {
                         'shipment_date' => $input['shipment_date'] ?? null,
                         'shipment_destination' => $input['shipment_destination'] ?? null,
                         'status' => $input['status'] ?? null,
-                        'transportation_cost' => isset($input['transportation_cost']) && $input['transportation_cost'] !== '' ? floatval($input['transportation_cost']) : null,
+                        'transportation_cost' => isset($input['transportation_cost']) && $input['transportation_cost'] !== '' ? floatval($input['transportation_cost']) : null
                     ];
                     $id = $handler->addShipment($payload);
                     echo json_encode($id ? ['success' => true, 'id' => $id] : ['success' => false, 'error' => 'Failed to add shipment']);
                     break;
+
                 case 'add_transport':
                     $result = $handler->addTransport(
                         $input['driver_id'],
@@ -83,6 +90,16 @@ switch ($method) {
                         echo json_encode(['success' => false, 'error' => 'Failed to add transport']);
                     }
                     break;
+
+                case 'add_shipment_progress':
+                    $payload = [
+                        'shipment_id' => intval($input['shipment_id'] ?? 0),
+                        'route_id' => intval($input['route_id'] ?? 0),
+                        'dispatch_time' => $input['dispatch_time'] ?? null
+                    ];
+                    echo json_encode($handler->addShipmentProgress($payload));
+                    break;
+
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -90,7 +107,7 @@ switch ($method) {
             echo json_encode(['error' => 'Action parameter required']);
         }
         break;
-        
+
     case 'PUT':
         if (isset($input['action'])) {
             switch ($input['action']) {
@@ -103,7 +120,7 @@ switch ($method) {
                         'shipment_date' => $input['shipment_date'] ?? null,
                         'shipment_destination' => $input['shipment_destination'] ?? null,
                         'status' => $input['status'] ?? null,
-                        'transportation_cost' => isset($input['transportation_cost']) && $input['transportation_cost'] !== '' ? floatval($input['transportation_cost']) : null,
+                        'transportation_cost' => isset($input['transportation_cost']) && $input['transportation_cost'] !== '' ? floatval($input['transportation_cost']) : null
                     ];
                     $ok = $handler->updateShipment($payload);
                     echo json_encode(['success' => (bool)$ok]);
@@ -119,6 +136,7 @@ switch ($method) {
                     );
                     echo json_encode(['success' => $result]);
                     break;
+
                 case 'update_status':
                     $result = $handler->updateShipmentStatus(
                         $input['shipment_id'],
@@ -126,6 +144,7 @@ switch ($method) {
                     );
                     echo json_encode(['success' => $result]);
                     break;
+
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -133,7 +152,7 @@ switch ($method) {
             echo json_encode(['error' => 'Action parameter required']);
         }
         break;
-        
+
     case 'DELETE':
         if (isset($input['action'])) {
             switch ($input['action']) {
@@ -141,11 +160,17 @@ switch ($method) {
                     $result = $handler->deleteShipment($input['shipment_id']);
                     echo json_encode(['success' => $result]);
                     break;
+
+                case 'delete_shipment_progress':
+                    $ok = $handler->deleteShipmentProgress(intval($input['progress_id'] ?? 0));
+                    echo json_encode(['success' => (bool)$ok]);
+                    break;
+
                 case 'delete_transport':
                     $result = $handler->deleteTransport($input['transport_id']);
                     echo json_encode(['success' => $result]);
                     break;
-            
+
                 default:
                     echo json_encode(['error' => 'Invalid action']);
             }
@@ -153,10 +178,9 @@ switch ($method) {
             echo json_encode(['error' => 'Action parameter required']);
         }
         break;
-        
+
     default:
         echo json_encode(['error' => 'Method not allowed']);
         break;
 }
 ?>
-

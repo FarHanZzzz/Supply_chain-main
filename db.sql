@@ -172,6 +172,40 @@ CREATE TABLE Shipments (
     FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
+CREATE TABLE Routes (
+    route_id INT AUTO_INCREMENT PRIMARY KEY,
+    route_name VARCHAR(255) NOT NULL,
+    destination VARCHAR(255) NOT NULL,
+    duration TIME,
+    distance DECIMAL(10,2),
+    road_condition ENUM('good','moderate','poor','closed') DEFAULT 'good'
+);
+
+CREATE TABLE Route_Defaults (
+  route_id INT PRIMARY KEY,
+  default_current_location VARCHAR(255) NOT NULL,
+  default_remaining_distance_km DECIMAL(10,2) NOT NULL,
+  CONSTRAINT fk_rd_route FOREIGN KEY (route_id) REFERENCES Routes(route_id) ON DELETE CASCADE
+);
+
+CREATE TABLE Shipment_Progress (
+  progress_id INT AUTO_INCREMENT PRIMARY KEY,
+  shipment_id INT NOT NULL,
+  route_id INT NOT NULL,
+  dispatch_time DATETIME NOT NULL,
+  destination VARCHAR(255) NOT NULL,
+  current_location VARCHAR(255),
+  remaining_distance_km DECIMAL(10,2),
+  estimated_arrival_time DATETIME,
+  INDEX idx_sp_shipment (shipment_id),
+  INDEX idx_sp_route (route_id),
+  CONSTRAINT fk_sp_shipment
+    FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE,
+  CONSTRAINT fk_sp_route
+    FOREIGN KEY (route_id) REFERENCES Routes(route_id) ON DELETE CASCADE
+);
+
+
 -- Shipping Documents
 CREATE TABLE Shipping_Documents (
     document_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -340,6 +374,53 @@ VALUES
   (2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'Pending', 4000.00),
   (3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'Delivered', 1800.00),
   (1, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
+
+INSERT INTO Routes (route_name, destination, duration, distance, road_condition) VALUES
+-- Dhaka
+('Route A','Dhaka, Bangladesh','06:00:00', 250.00, 'good'),
+('Route B','Dhaka, Bangladesh','07:30:00', 260.00, 'moderate'),
+('Route C','Dhaka, Bangladesh','05:45:00', 240.00, 'good'),
+-- Chittagong
+('Route A','Chittagong, Bangladesh','08:00:00', 270.00, 'moderate'),
+('Route B','Chittagong, Bangladesh','09:15:00', 300.00, 'poor'),
+('Route C','Chittagong, Bangladesh','07:40:00', 260.00, 'good'),
+-- Khulna
+('Route A','Khulna, Bangladesh','05:20:00', 190.00, 'closed'),
+('Route B','Khulna, Bangladesh','06:10:00', 210.00, 'moderate'),
+('Route C','Khulna, Bangladesh','05:50:00', 200.00, 'good'),
+-- Rajshahi
+('Route A','Rajshahi, Bangladesh','07:00:00', 240.00, 'good'),
+('Route B','Rajshahi, Bangladesh','07:45:00', 260.00, 'moderate'),
+('Route C','Rajshahi, Bangladesh','06:30:00', 230.00, 'good'),
+-- Sylhet
+('Route A','Sylhet, Bangladesh','06:20:00', 240.00, 'moderate'),
+('Route B','Sylhet, Bangladesh','07:10:00', 260.00, 'poor'),
+('Route C','Sylhet, Bangladesh','05:55:00', 230.00, 'good');
+
+INSERT INTO Route_Defaults (route_id, default_current_location, default_remaining_distance_km) VALUES
+(1,  'Narayanganj, Bangladesh',  35.50),
+(2,  'Gazipur, Bangladesh',      58.00),
+(3,  'Tangail, Bangladesh',      80.00),
+(4,  'Feni, Bangladesh',        120.00),
+(5,  'Cumilla, Bangladesh',     145.00),
+(6,  'Sitakunda, Bangladesh',    25.00),
+(7,  'Jhenaidah, Bangladesh',    95.00),
+(8,  'Jessore, Bangladesh',      65.00),
+(9,  'Magura, Bangladesh',       88.00),
+(10, 'Sirajganj, Bangladesh',   110.00),
+(11, 'Natore, Bangladesh',       70.00),
+(12, 'Pabna, Bangladesh',        95.00),
+(13, 'Moulvibazar, Bangladesh',  85.75),
+(14, 'Habiganj, Bangladesh',     60.00),
+(15, 'Srimangal, Bangladesh',    40.00);
+
+INSERT INTO Shipment_Progress
+  (shipment_id, route_id, dispatch_time, current_location, remaining_distance_km, estimated_arrival_time)
+VALUES
+  (1,  1,  '2025-08-10 08:00:00', 'Narayanganj, Bangladesh',  35.50, '2025-08-10 12:30:00'),
+  (2,  4,  '2025-08-11 07:30:00', 'Feni, Bangladesh',        120.00, '2025-08-11 16:45:00'),
+  (3, 13,  '2025-08-12 06:15:00', 'Moulvibazar, Bangladesh',  85.75, '2025-08-12 13:10:00');
+
 
 INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, issue_date, issued_by, file_path, approval_status, notes) VALUES
 (1, 'Invoice', 'INV-001', '2024-06-17', 'Admin', '/invoices/INV-001.pdf', 'Approved', 'Initial shipment invoice'),
