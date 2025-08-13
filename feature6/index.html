@@ -367,7 +367,7 @@
             </div>
             <div class="col-md-3">
                 <select class="form-select" id="statusFilter">
-                <option value="">All Status</option>
+                <option value="">All Statuses</option>
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
@@ -394,7 +394,6 @@
                 <tr>
                     <th>ID</th>
                     <th>Type</th>
-                    <th>Document Number</th>
                     <th>Shipment</th>
                     <th>Issue Date</th>
                     <th>Issued By</th>
@@ -434,10 +433,7 @@
                                     <option value="Other">Other</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Document Number</label>
-                                <input type="text" class="form-control" id="documentNumber" required>
-                            </div>
+                            
                             <div class="col-md-6">
                                 <label class="form-label">Shipment</label>
                                 <select class="form-select" id="shipmentId" required>
@@ -489,7 +485,7 @@
                     <div class="row mb-4">
                         <div class="col-md-8">
                             <h4 id="viewDocumentType"></h4>
-                            <p class="mb-1"><strong>Document Number:</strong> <span id="viewDocumentNumber"></span></p>
+                            
                             <p class="mb-1"><strong>Status:</strong> <span class="status-badge" id="viewStatus"></span></p>
                         </div>
                         <div class="col-md-4 text-end">

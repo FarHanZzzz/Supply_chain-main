@@ -113,7 +113,7 @@ function displayDocuments(documents) {
     if (!documents || documents.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center py-5">
+                <td colspan="7" class="text-center py-5">
                     <i class="fas fa-file-excel fa-3x text-muted mb-3"></i>
                     <h5>No Documents Found</h5>
                     <p>Add your first shipping document to get started</p>
@@ -130,7 +130,6 @@ function displayDocuments(documents) {
         row.innerHTML = `
             <td>DOC-${doc.document_id.toString().padStart(5, '0')}</td>
             <td>${doc.document_type}</td>
-            <td>${doc.document_number || 'N/A'}</td>
             <td>
                 <div>SH-${doc.shipment_id.toString().padStart(5, '0')}</div>
                 <small class="text-muted">${doc.shipment_destination}</small>
@@ -252,7 +251,6 @@ async function editDocument(documentId) {
         document.getElementById('modalTitle').textContent = 'Edit Document';
         document.getElementById('documentId').value = docData.document_id;
         document.getElementById('documentType').value = docData.document_type || '';
-        document.getElementById('documentNumber').value = docData.document_number || '';
         
         // Load shipments before setting value
         await loadShipments();
@@ -264,7 +262,7 @@ async function editDocument(documentId) {
             issueDate.toISOString().split('T')[0] : '';
         
         document.getElementById('issuedBy').value = docData.issued_by || '';
-        document.getElementById('filePath').value = docData.file_path || '';
+        // file path is no longer editable in the form
         document.getElementById('approvalStatus').value = docData.approval_status || 'Pending';
         document.getElementById('notes').value = docData.notes || '';
         
@@ -278,9 +276,9 @@ async function editDocument(documentId) {
 
 // View document
 async function viewDocument(documentId) {
+    let modalBody = document.querySelector('#viewModal .modal-body');
     try {
         // Clear previous modal content
-        const modalBody = document.querySelector('#viewModal .modal-body');
         modalBody.innerHTML = `
             <div class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
@@ -313,12 +311,11 @@ async function viewDocument(documentId) {
             <div class="row mb-4">
                 <div class="col-md-8">
                     <h4>${docData.document_type || 'N/A'}</h4>
-                    <p class="mb-1"><strong>Document Number:</strong> ${docData.document_number || 'N/A'}</p>
                     <p class="mb-1"><strong>Status:</strong> <span class="status-badge ${getStatusClass(docData.approval_status)}">${docData.approval_status || 'Unknown'}</span></p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <button class="btn btn-primary" id="downloadBtn" ${!docData.file_path ? 'disabled' : ''}>
-                        <i class="fas fa-download me-1"></i> Download
+                    <button class="btn btn-primary" id="downloadBtn">
+                        <i class="fas fa-download me-1"></i> Download PDF
                     </button>
                 </div>
             </div>
@@ -352,6 +349,9 @@ async function viewDocument(documentId) {
         
     } catch (error) {
         console.error('Error loading document:', error);
+        if (!modalBody) {
+            modalBody = document.querySelector('#viewModal .modal-body');
+        }
         modalBody.innerHTML = `
             <div class="alert alert-danger">
                 <h5>Error Loading Document</h5>
@@ -364,40 +364,75 @@ async function viewDocument(documentId) {
 
 // Download document
 function generateDocumentPDF(doc) {
-    const { jsPDF } = window.jspdf;
-    const docPdf = new jsPDF();
-    const title = `${doc.document_type || 'Document'} (${doc.document_number || 'N/A'})`;
-    docPdf.setFontSize(16);
-    docPdf.text(title, 14, 16);
+    try {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error('PDF library failed to load');
+        }
+        const { jsPDF } = window.jspdf;
+        const docPdf = new jsPDF();
+        const title = `${doc.document_type || 'Document'}`;
+        docPdf.setFontSize(16);
+        docPdf.text(title, 14, 16);
 
-    docPdf.setFontSize(11);
-    const rows1 = [
-        ['Status', doc.approval_status || 'N/A'],
-        ['Issue Date', formatDate(doc.issue_date) || 'N/A'],
-        ['Issued By', doc.issued_by || 'N/A'],
-    ];
-    docPdf.autoTable({ startY: 22, head: [['Field', 'Value']], body: rows1, theme: 'grid' });
+        // If autotable is available, use tables; otherwise fallback to plain text layout
+        if (typeof docPdf.autoTable === 'function') {
+            docPdf.setFontSize(11);
+            const rows1 = [
+                ['Status', doc.approval_status || 'N/A'],
+                ['Issue Date', formatDate(doc.issue_date) || 'N/A'],
+                ['Issued By', doc.issued_by || 'N/A'],
+            ];
+            docPdf.autoTable({ startY: 22, head: [['Field', 'Value']], body: rows1, theme: 'grid' });
 
-    const startY2 = docPdf.lastAutoTable.finalY + 6;
-    docPdf.setFontSize(13);
-    docPdf.text('Shipment Information', 14, startY2);
-    const rows2 = [
-        ['Shipment ID', doc.shipment_id ? `SH-${String(doc.shipment_id).padStart(5,'0')}` : 'N/A'],
-        ['Destination', doc.shipment_destination || 'N/A'],
-        ['Shipment Date', formatDate(doc.shipment_date) || 'N/A'],
-        ['Driver', doc.driver_name || 'N/A'],
-        ['Vehicle', doc.vehicle_type || 'N/A'],
-    ];
-    docPdf.autoTable({ startY: startY2 + 4, head: [['Field', 'Value']], body: rows2, theme: 'grid' });
+            const startY2 = (docPdf.lastAutoTable?.finalY || 22) + 6;
+            docPdf.setFontSize(13);
+            docPdf.text('Shipment Information', 14, startY2);
+            const rows2 = [
+                ['Shipment ID', doc.shipment_id ? `SH-${String(doc.shipment_id).padStart(5,'0')}` : 'N/A'],
+                ['Destination', doc.shipment_destination || 'N/A'],
+                ['Shipment Date', formatDate(doc.shipment_date) || 'N/A'],
+                ['Driver', doc.driver_name || 'N/A'],
+                ['Vehicle', doc.vehicle_type || 'N/A'],
+            ];
+            docPdf.autoTable({ startY: startY2 + 4, head: [['Field', 'Value']], body: rows2, theme: 'grid' });
 
-    const startY3 = docPdf.lastAutoTable.finalY + 6;
-    docPdf.setFontSize(13);
-    docPdf.text('Notes', 14, startY3);
-    const noteText = doc.notes || 'No notes available';
-    const split = docPdf.splitTextToSize(noteText, 180);
-    docPdf.text(split, 14, startY3 + 6);
+            const startY3 = (docPdf.lastAutoTable?.finalY || startY2 + 4) + 6;
+            docPdf.setFontSize(13);
+            docPdf.text('Notes', 14, startY3);
+            const noteText = doc.notes || 'No notes available';
+            const split = docPdf.splitTextToSize(noteText, 180);
+            docPdf.text(split, 14, startY3 + 6);
+        } else {
+            // Fallback layout without autotable
+            let y = 20;
+            docPdf.setFontSize(12);
+            const addLine = (label, value) => { docPdf.text(`${label}: ${value || 'N/A'}`, 14, y); y += 7; };
+            addLine('Status', doc.approval_status);
+            addLine('Issue Date', formatDate(doc.issue_date));
+            addLine('Issued By', doc.issued_by);
+            y += 5;
+            docPdf.setFontSize(13);
+            docPdf.text('Shipment Information', 14, y); y += 7;
+            docPdf.setFontSize(12);
+            addLine('Shipment ID', doc.shipment_id ? `SH-${String(doc.shipment_id).padStart(5,'0')}` : 'N/A');
+            addLine('Destination', doc.shipment_destination);
+            addLine('Shipment Date', formatDate(doc.shipment_date));
+            addLine('Driver', doc.driver_name);
+            addLine('Vehicle', doc.vehicle_type);
+            y += 5;
+            docPdf.setFontSize(13);
+            docPdf.text('Notes', 14, y); y += 7;
+            docPdf.setFontSize(12);
+            const noteText = doc.notes || 'No notes available';
+            const split = docPdf.splitTextToSize(noteText, 180);
+            docPdf.text(split, 14, y);
+        }
 
-    docPdf.save(`${(doc.document_type || 'document').replace(/\s+/g,'_')}_${doc.document_number || 'N_A'}.pdf`);
+        docPdf.save(`${(doc.document_type || 'document').replace(/\s+/g,'_')}.pdf`);
+    } catch (err) {
+        console.error('PDF generation failed:', err);
+        alert('Failed to generate PDF. Please check your internet connection and try again.');
+    }
 }
 
 // Save document (add or update)
@@ -406,7 +441,6 @@ async function saveDocument() {
     const formData = {
         shipment_id: document.getElementById('shipmentId').value,
         document_type: document.getElementById('documentType').value,
-        document_number: document.getElementById('documentNumber').value,
         issue_date: document.getElementById('issueDate').value,
         issued_by: document.getElementById('issuedBy').value,
         // file_path removed per requirements
@@ -510,7 +544,7 @@ async function searchDocuments() {
         const tableBody = document.getElementById('documentsTableBody');
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center py-5">
+                <td colspan="7" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
@@ -540,7 +574,7 @@ async function searchDocuments() {
         const tableBody = document.getElementById('documentsTableBody');
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center py-5 text-danger">
+                <td colspan="7" class="text-center py-5 text-danger">
                     <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
                     <h5>Search Failed</h5>
                     <p>${error.message}</p>
@@ -561,7 +595,7 @@ function filterDocuments() {
     const rows = tableBody.getElementsByTagName('tr');
     
     for (let row of rows) {
-        const statusCell = row.cells[6];
+        const statusCell = row.cells[5];
         const typeCell = row.cells[1];
         
         const statusMatch = !statusFilter || statusCell.textContent.includes(statusFilter);

@@ -15,7 +15,6 @@ class DocumentManagementHandler {
                     sd.document_id,
                     sd.shipment_id,
                     sd.document_type,
-                    sd.document_number,
                     sd.issue_date,
                     sd.issued_by,
                     sd.file_path,
@@ -72,7 +71,7 @@ class DocumentManagementHandler {
 
 
 
-    // Search documents by term (searches document_number, shipment_destination, driver_name, and document_type)
+     // Search documents by term (searches shipment_destination, driver_name, and document_type)
     public function searchDocuments($term) {
         $raw = trim((string)$term);
         $like = '%' . strtolower($raw) . '%';
@@ -85,7 +84,6 @@ class DocumentManagementHandler {
                 sd.document_id,
                 sd.shipment_id,
                 sd.document_type,
-                sd.document_number,
                 sd.issue_date,
                 sd.issued_by,
                 sd.file_path,
@@ -100,8 +98,7 @@ class DocumentManagementHandler {
             LEFT JOIN Shipments s ON sd.shipment_id = s.shipment_id
             LEFT JOIN Transports t ON s.transport_id = t.transport_id
             LEFT JOIN Drivers d ON t.driver_id = d.driver_id
-            WHERE LOWER(sd.document_number) LIKE ?
-               OR LOWER(s.shipment_destination) LIKE ?
+            WHERE LOWER(s.shipment_destination) LIKE ?
                OR LOWER(CONCAT(d.first_name, ' ', d.last_name)) LIKE ?
                OR LOWER(sd.document_type) LIKE ?
                OR sd.document_id = ? " .  // Numeric ID search
@@ -114,8 +111,8 @@ class DocumentManagementHandler {
         }
         
         // Bind parameters based on ID type
-        $types = "ssssi";
-        $params = [$like, $like, $like, $like];
+        $types = "sssi";
+        $params = [$like, $like, $like];
         
         // Numeric ID parameter
         $params[] = $isNumericId ? (int)$raw : 0;
@@ -144,19 +141,19 @@ class DocumentManagementHandler {
 
     // Add a new document
     public function addDocument($data) {
+        $filePath = isset($data['file_path']) ? $data['file_path'] : '';
         $stmt = $this->conn->prepare("INSERT INTO Shipping_Documents 
-                    (shipment_id, document_type, document_number, issue_date, 
+                    (shipment_id, document_type, issue_date, 
                      issued_by, file_path, approval_status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    VALUES (?, ?, ?, ?, ?, ?, ?)");
         
         if ($stmt) {
-            $stmt->bind_param("isssssss", 
+            $stmt->bind_param("issssss", 
                 $data['shipment_id'], 
                 $data['document_type'], 
-                $data['document_number'], 
                 $data['issue_date'], 
                 $data['issued_by'], 
-                $data['file_path'], 
+                $filePath, 
                 $data['approval_status'], 
                 $data['notes']
             );
@@ -173,20 +170,20 @@ class DocumentManagementHandler {
 
     // Update a document
     public function updateDocument($document_id, $data) {
+        $filePath = isset($data['file_path']) ? $data['file_path'] : null;
         $stmt = $this->conn->prepare("UPDATE Shipping_Documents 
-                    SET shipment_id = ?, document_type = ?, document_number = ?, 
-                        issue_date = ?, issued_by = ?, file_path = ?, 
+                    SET shipment_id = ?, document_type = ?, 
+                        issue_date = ?, issued_by = ?, file_path = COALESCE(?, file_path), 
                         approval_status = ?, notes = ?
                     WHERE document_id = ?");
         
         if ($stmt) {
-            $stmt->bind_param("isssssssi", 
+            $stmt->bind_param("issssssi", 
                 $data['shipment_id'], 
                 $data['document_type'], 
-                $data['document_number'], 
                 $data['issue_date'], 
                 $data['issued_by'], 
-                $data['file_path'], 
+                $filePath, 
                 $data['approval_status'], 
                 $data['notes'],
                 $document_id
