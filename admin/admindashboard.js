@@ -6,10 +6,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const dashboardHome = document.getElementById('dashboardHome');
             const featureFrame = document.getElementById('featureFrame');
 
+
+
             // Flags for chart initialization
             let chartsInitialised = false;
             let performanceChartInstance = null;
             let inventoryChartInstance = null;
+
+            
 
             /**
              * Toggle the sidebar on small screens.

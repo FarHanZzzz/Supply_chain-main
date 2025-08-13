@@ -14,6 +14,7 @@ $requestData = json_decode(file_get_contents('php://input'), true) ?? $_REQUEST;
 // Instantiate handler
 $handler = new DocumentManagementHandler();
 
+
 // Route requests
 try {
     switch ($requestMethod) {
