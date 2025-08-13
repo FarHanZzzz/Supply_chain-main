@@ -1,418 +1,808 @@
-<!--
-  FRAAAAS Admin Dashboard
-
-  This HTML file implements a single‑page admin interface for FRAAAAS.  The
-  layout includes a collapsible sidebar for navigation, a top bar with
-  actions/user controls, a dashboard view with key metrics and charts, and
-  an iframe that displays individual features.  Modern CSS variables and
-  Bootstrap classes are used to achieve a clean, responsive design.
-
-  To hook up custom functionality, see the associated JavaScript file
-  (`admindashboard.js`).  That script listens for clicks on the sidebar
-  links, toggles between the dashboard and feature views, adjusts the
-  iframe height after loading, and initialises optional charts.
--->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FRAAAAS | Dashboard</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRAAAAS | Admin Dashboard</title>
     <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome Icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      /* Root variables for colours and spacing */
-      :root {
-        --sidebar-width: 250px;
-        --sidebar-bg: #1e2a38;
-        --sidebar-hover: #243447;
-        --primary-color: #0d6efd;
-        --success-color: #198754;
-        --warning-color: #f39c12;
-        --danger-color: #dc3545;
-        --text-light: #f8f9fa;
-        --text-muted: #6c757d;
-      }
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --primary-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-      body {
-        background-color: #f5f7fa;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-          Roboto, 'Helvetica Neue', Arial, sans-serif;
-        overflow-x: hidden;
-      }
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow-x: hidden;
+            color: #334155;
+        }
 
-      /* Sidebar styling */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        width: var(--sidebar-width);
-        background: var(--sidebar-bg);
-        color: var(--text-light);
-        z-index: 1000;
-        overflow-y: auto;
-        transition: transform 0.3s ease;
-      }
+        /* Sidebar styling */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: var(--text-light);
+            z-index: 1000;
+            overflow-y: auto;
+            transition: var(--transition);
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+        }
 
-      .sidebar.collapsed {
-        transform: translateX(-100%);
-      }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
 
-      .sidebar-header {
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
 
-      .sidebar-menu ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
+        .sidebar-header h3 {
+            font-weight: 600;
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+        }
 
-      .sidebar-menu li a {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 1rem;
-        color: var(--text-light);
-        text-decoration: none;
-        transition: background 0.2s, border-left 0.2s;
-        border-left: 3px solid transparent;
-      }
+        .sidebar-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
 
-      .sidebar-menu li a:hover,
-      .sidebar-menu li a.active {
-        background: var(--sidebar-hover);
-        border-left: 3px solid var(--primary-color);
-      }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+            font-weight: 500;
+        }
 
-      .sidebar-menu li a i {
-        margin-right: 0.75rem;
-        width: 1.25rem;
-        text-align: center;
-      }
+        .sidebar-menu li a:hover,
+        .sidebar-menu li a.active {
+            background: var(--sidebar-hover);
+            border-left: 3px solid var(--primary-color);
+            color: var(--text-light);
+        }
 
-      /* Main content area */
-      .main-content {
-        margin-left: var(--sidebar-width);
-        padding: 1.5rem;
-        transition: margin-left 0.3s ease;
-      }
+        .sidebar-menu li a i {
+            margin-right: 0.75rem;
+            width: 1.25rem;
+            text-align: center;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
 
-      /* Adjust content margin when sidebar is collapsed */
-      @media (max-width: 992px) {
+        .sidebar-menu li a:hover i,
+        .sidebar-menu li a.active i {
+            color: var(--primary-color);
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Top bar styling */
+        .top-bar {
+            background: #ffffff;
+            padding: 0.8rem 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .top-bar h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .top-bar .controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .notification-bell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f8fafc;
+            transition: var(--transition);
+            color: #64748b;
+        }
+
+        .notification-bell:hover {
+            background: #e2e8f0;
+            color: var(--primary-color);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--danger-color);
+            border: 2px solid white;
+        }
+
+        .user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50px;
+            transition: var(--transition);
+        }
+
+        .user-dropdown:hover {
+            background: #f1f5f9;
+        }
+
+        .user-dropdown img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-dropdown span {
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .dropdown-menu {
+            border-radius: 0.75rem;
+            border: none;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem;
+            min-width: 200px;
+        }
+
+        .dropdown-item {
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: var(--transition);
+            color: #334155;
+        }
+
+        .dropdown-item:hover {
+            background: #f1f5f9;
+            color: var(--primary-color);
+        }
+
+        /* Main content area */
         .main-content {
-          margin-left: 0;
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem;
+            transition: var(--transition);
         }
-        .sidebar.collapsed + .main-content {
-          margin-left: var(--sidebar-width);
-        }
-      }
 
-      /* Toggle button for small screens */
-      .toggle-btn {
-        position: fixed;
-        top: 1rem;
-        left: 1rem;
-        background: var(--sidebar-bg);
-        color: var(--text-light);
-        border: none;
-        border-radius: 4px;
-        padding: 0.5rem 0.75rem;
-        z-index: 999;
-        display: none;
-      }
-      @media (max-width: 992px) {
+        /* Adjust content margin when sidebar is collapsed */
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+            }
+            .sidebar.collapsed + .main-content {
+                margin-left: var(--sidebar-width);
+            }
+        }
+
+        /* Toggle button for small screens */
         .toggle-btn {
-          display: block;
+            position: fixed;
+            top: 1.25rem;
+            left: 1.25rem;
+            background: var(--sidebar-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
         }
-      }
 
-      /* Card styling */
-      .stat-card {
-        border: none;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-        overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      .stat-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-      }
+        .toggle-btn:hover {
+            background: var(--sidebar-hover);
+        }
 
-      .stat-card .card-body {
-        padding: 1.25rem;
-      }
-      .stat-card h6 {
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.04rem;
-        margin-bottom: 0.25rem;
-      }
+        @media (max-width: 992px) {
+            .toggle-btn {
+                display: flex;
+            }
+        }
 
-      /* Top bar styling */
-      .top-bar {
-        background: #ffffff;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-        margin-bottom: 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+        /* Card styling */
+        .stat-card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            transition: var(--transition);
+            height: 100%;
+            border-left: 4px solid var(--primary-color);
+            background: white;
+        }
 
-      /* Feature iframe */
-      .feature-frame {
-        width: 100%;
-        height: 0;
-        min-height: 700px;
-        border: 0;
-        border-radius: 0.5rem;
-        background: transparent;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      }
+        .stat-card.primary {
+            border-left-color: var(--primary-color);
+        }
+        
+        .stat-card.success {
+            border-left-color: var(--success-color);
+        }
+        
+        .stat-card.warning {
+            border-left-color: var(--warning-color);
+        }
+        
+        .stat-card.danger {
+            border-left-color: var(--danger-color);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .stat-card h6 {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.04rem;
+            margin-bottom: 0.5rem;
+            color: #64748b;
+        }
+
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+
+        .stat-card .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .stat-card.success .icon {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .stat-card.warning .icon {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .stat-card.danger .icon {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* Chart cards */
+        .chart-card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+            background: white;
+            transition: var(--transition);
+            height: 100%;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card .card-header {
+            border: none;
+            background: transparent;
+            padding: 1.25rem 1.5rem 0;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .chart-card .card-body {
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* Feature iframe */
+        .feature-frame {
+            width: 100%;
+            height: 0;
+            min-height: 700px;
+            border: 0;
+            border-radius: 0.75rem;
+            background: white;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+
+        .feature-frame.active {
+            height: auto;
+        }
+
+        /* Activity feed */
+        .activity-feed {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .activity-feed li {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .activity-feed li:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            color: #1e293b;
+        }
+
+        .activity-desc {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .stat-card .value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-card .icon {
+                width: 42px;
+                height: 42px;
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <!-- Mobile sidebar toggle -->
     <button class="toggle-btn" id="sidebarToggle">
-      <i class="fas fa-bars"></i>
+        <i class="fas fa-bars"></i>
     </button>
 
     <!-- Sidebar navigation -->
     <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <h3 class="d-flex align-items-center mb-0">
-          <i class="fas fa-seedling me-2"></i> FRAAAAS
-        </h3>
-      </div>
-      <nav class="sidebar-menu">
-        <ul>
-          <li>
-            <a href="#" class="active" data-target="dashboard" data-title="Dashboard Overview">
-              <i class="fas fa-tachometer-alt"></i>
-              Dashboard
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature1/"
-              data-target="iframe"
-              data-url="/feature1/"
-              data-title="Agriculture Products"
-            >
-              <i class="fas fa-apple-alt"></i>
-              Agriculture Products
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature2/"
-              data-target="iframe"
-              data-url="/feature2/"
-              data-title="Inventory"
-            >
-              <i class="fas fa-warehouse"></i>
-              Inventory
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature3/"
-              data-target="iframe"
-              data-url="/feature3/"
-              data-title="Logistics"
-            >
-              <i class="fas fa-truck"></i>
-              Logistics
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature4/"
-              data-target="iframe"
-              data-url="/feature4/"
-              data-title="Tracking"
-            >
-              <i class="fas fa-map-marked-alt"></i>
-              Tracking
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature5/"
-              data-target="iframe"
-              data-url="/feature5/"
-              data-title="Condition Monitoring"
-            >
-              <i class="fas fa-thermometer-half"></i>
-              Condition Monitoring
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature6/"
-              data-target="iframe"
-              data-url="/feature6/"
-              data-title="Documents"
-            >
-              <i class="fas fa-file-alt"></i>
-              Documents
-            </a>
-          </li>
-          <li>
-            <a
-              href="/feature7/"
-              data-target="iframe"
-              data-url="/feature7/"
-              data-title="Analytics"
-            >
-              <i class="fas fa-chart-line"></i>
-              Analytics
-            </a>
-          </li>
-        </ul>
-      </nav>
-      <div class="p-3 text-center">
-        <small class="text-white-50">FRAAAAS v2.0</small>
-      </div>
+        <div class="sidebar-header">
+            <h3 class="d-flex align-items-center mb-0">
+                <i class="fas fa-seedling me-2 text-success"></i> 
+                <span class="fw-bold">FRAAAAS</span>
+            </h3>
+        </div>
+        <nav class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="#" class="active" data-target="dashboard" data-title="Dashboard Overview">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature1/"
+                        data-target="iframe"
+                        data-url="/feature1/"
+                        data-title="Agriculture Products"
+                    >
+                        <i class="fas fa-apple-alt"></i>
+                        Agriculture Products
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature2/"
+                        data-target="iframe"
+                        data-url="/feature2/"
+                        data-title="Inventory"
+                    >
+                        <i class="fas fa-warehouse"></i>
+                        Inventory
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature3/"
+                        data-target="iframe"
+                        data-url="/feature3/"
+                        data-title="Logistics"
+                    >
+                        <i class="fas fa-truck"></i>
+                        Logistics
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature4/"
+                        data-target="iframe"
+                        data-url="/feature4/"
+                        data-title="Tracking"
+                    >
+                        <i class="fas fa-map-marked-alt"></i>
+                        Tracking
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature5/"
+                        data-target="iframe"
+                        data-url="/feature5/"
+                        data-title="Condition Monitoring"
+                    >
+                        <i class="fas fa-thermometer-half"></i>
+                        Condition Monitoring
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature6/"
+                        data-target="iframe"
+                        data-url="/feature6/"
+                        data-title="Documents"
+                    >
+                        <i class="fas fa-file-alt"></i>
+                        Documents
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="/feature7/"
+                        data-target="iframe"
+                        data-url="/feature7/"
+                        data-title="Analytics"
+                    >
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="sidebar-footer">
+            <small>FRAAAAS v2.0</small>
+        </div>
     </aside>
 
     <!-- Main content -->
     <main class="main-content">
-      <!-- Top bar -->
-      <div class="top-bar">
-        <div>
-          <h1 class="h4 mb-0" id="pageTitle">Dashboard Overview</h1>
-        </div>
-        <div class="d-flex align-items-center">
-          <div class="btn-toolbar me-3">
-            <div class="btn-group me-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary">
-                Export
-              </button>
+        <!-- Top bar -->
+        <div class="top-bar">
+            <div>
+                <h1 id="pageTitle">Dashboard Overview</h1>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
-              <i class="fas fa-calendar me-1"></i> This week
-            </button>
-          </div>
-          <div class="dropdown user-dropdown">
-            <a
-              class="dropdown-toggle d-flex align-items-center"
-              href="#"
-              role="button"
-              id="userDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <img
-                src="https://ui-avatars.com/api/?name=Admin&background=0d6efd&color=fff"
-                alt="Admin"
-                class="rounded-circle me-2"
-                width="32"
-                height="32"
-              />
-              <span>Admin</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-user me-2"></i> Profile
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-cog me-2"></i> Settings
-                </a>
-              </li>
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <a class="dropdown-item" href="#">
-                  <i class="fas fa-sign-out-alt me-2"></i> Logout
-                </a>
-              </li>
-            </ul>
-          </div>
+            <div class="controls">
+                <div class="btn-toolbar me-3">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-light border">
+                            <i class="fas fa-download me-1"></i> Export
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-light border dropdown-toggle">
+                        <i class="fas fa-calendar me-1"></i> This week
+                    </button>
+                </div>
+                
+                <div class="notification-bell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge"></span>
+                </div>
+                
+                <div class="dropdown user-dropdown">
+                    <a
+                        class="dropdown-toggle d-flex align-items-center"
+                        href="#"
+                        role="button"
+                        id="userDropdown"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        <img
+                            src="https://ui-avatars.com/api/?name=Admin&background=3b82f6&color=fff&bold=true"
+                            alt="Admin"
+                            class="rounded-circle"
+                        />
+                        <span class="ms-2 d-none d-md-inline">Admin</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-user me-2"></i> Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-cog me-2"></i> Settings
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <!-- Dashboard overview (default view) -->
-      <section id="dashboardHome">
-        <div class="row g-4 mb-4">
-          <div class="col-12 col-sm-6 col-md-3">
-            <div class="card text-white bg-primary stat-card">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="card-title">Active Products</h6>
-                    <h2 class="mb-0">24</h2>
-                  </div>
-                  <i class="fas fa-apple-alt fa-2x opacity-50"></i>
+        <!-- Dashboard overview (default view) -->
+        <section id="dashboardHome">
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="card stat-card primary fade-in" style="animation-delay: 0.1s;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Active Products</h6>
+                                    <div class="value">24</div>
+                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 5.2% from last week</small>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-apple-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-md-3">
-            <div class="card text-white bg-success stat-card">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="card-title">Inventory Items</h6>
-                    <h2 class="mb-0">156</h2>
-                  </div>
-                  <i class="fas fa-warehouse fa-2x opacity-50"></i>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="card stat-card success fade-in" style="animation-delay: 0.2s;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Inventory Items</h6>
+                                    <div class="value">156</div>
+                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 2.4% from last week</small>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-warehouse"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-md-3">
-            <div class="card text-white bg-warning stat-card">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="card-title">Active Shipments</h6>
-                    <h2 class="mb-0">12</h2>
-                  </div>
-                  <i class="fas fa-truck fa-2x opacity-50"></i>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="card stat-card warning fade-in" style="animation-delay: 0.3s;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Active Shipments</h6>
+                                    <div class="value">12</div>
+                                    <small class="text-danger"><i class="fas fa-arrow-down me-1"></i> 1.3% from last week</small>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-truck"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-md-3">
-            <div class="card text-white bg-danger stat-card">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="card-title">Alerts</h6>
-                    <h2 class="mb-0">3</h2>
-                  </div>
-                  <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="card stat-card danger fade-in" style="animation-delay: 0.4s;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Alerts</h6>
+                                    <div class="value">3</div>
+                                    <small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i> Requires attention</small>
+                                </div>
+                                <div class="icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
-        </div>
-        <!-- Additional dashboard widgets can be added here -->
-      </section>
+            
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-lg-8">
+                    <div class="chart-card">
+                        <div class="card-header">Shipment Performance</div>
+                        <div class="card-body">
+                            <canvas id="performanceChart" height="280"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="chart-card">
+                        <div class="card-header">Inventory Distribution</div>
+                        <div class="card-body">
+                            <canvas id="inventoryChart" height="280"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-12 col-lg-6">
+                    <div class="chart-card">
+                        <div class="card-header">Recent Activity</div>
+                        <div class="card-body">
+                            <ul class="activity-feed">
+                                <li>
+                                    <div class="activity-icon">
+                                        <i class="fas fa-truck-loading"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">New Shipment Created</div>
+                                        <div class="activity-desc">Shipment #FR-2023-089 to Miami Distribution Center</div>
+                                        <div class="activity-time">10 minutes ago</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="activity-icon bg-success bg-opacity-10 text-success">
+                                        <i class="fas fa-temperature-low"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">Temperature Alert</div>
+                                        <div class="activity-desc">Container #CT-456 exceeded threshold by 2.5°C</div>
+                                        <div class="activity-time">45 minutes ago</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="activity-icon bg-warning bg-opacity-10 text-warning">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">Document Uploaded</div>
+                                        <div class="activity-desc">Customs clearance for shipment #FR-2023-087</div>
+                                        <div class="activity-time">2 hours ago</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="activity-icon bg-primary bg-opacity-10 text-primary">
+                                        <i class="fas fa-box"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">Inventory Updated</div>
+                                        <div class="activity-desc">Added 120 units of Organic Apples to Warehouse B</div>
+                                        <div class="activity-time">4 hours ago</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="chart-card">
+                        <div class="card-header">Current Alerts</div>
+                        <div class="card-body">
+                            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Container Temperature Alert</h6>
+                                    <p class="mb-0">Container #CT-456 exceeded max temperature by 3.2°C</p>
+                                    <small>2 hours ago · Shipment #FR-2023-084</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                <i class="fas fa-clock me-3 fs-4"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Delay Alert</h6>
+                                    <p class="mb-0">Shipment #FR-2023-086 is delayed by 8 hours</p>
+                                    <small>5 hours ago · Estimated arrival 2:30 PM</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-info d-flex align-items-center" role="alert">
+                                <i class="fas fa-box-open me-3 fs-4"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Low Inventory Alert</h6>
+                                    <p class="mb-0">Organic Bananas inventory below minimum level</p>
+                                    <small>Yesterday · Only 42 units remaining</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-      <!-- Feature iframe: toggled when user selects a feature -->
-      <iframe
-        id="featureFrame"
-        class="feature-frame d-none"
-        title="Feature Frame"
-      ></iframe>
+        <!-- Feature iframe: toggled when user selects a feature -->
+        <iframe
+            id="featureFrame"
+            class="feature-frame"
+            title="Feature Frame"
+        ></iframe>
     </main>
 
     <!-- Dependencies -->
@@ -420,6 +810,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Dashboard logic -->
-    <script src="admindashboard.js"></script>
-  </body>
+    <script src = "admindashboard.js"> </script>
+</body>
 </html>

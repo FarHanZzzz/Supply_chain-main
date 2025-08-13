@@ -17,7 +17,7 @@ class TemperatureHumidityHandler {
             error_log("Database connection is not active");
             return [];
         }
-    
+
         $sql = "SELECT 
                     sd.sensor_data_id,
                     sd.sensor_id,
@@ -26,9 +26,13 @@ class TemperatureHumidityHandler {
                     sd.humidity,
                     sd.travel_duration,
                     sd.coordinates,
-                    s.sensor_type
+                    s.sensor_type,
+                    t.transport_id,
+                    t.vehicle_license_no,
+                    t.vehicle_type
                 FROM Sensor_Data sd
                 LEFT JOIN Sensors s ON sd.sensor_id = s.sensor_id
+                LEFT JOIN Transports t ON s.transport_id = t.transport_id
                 ORDER BY sd.timestamp DESC";
         
         $result = $this->conn->query($sql);
@@ -95,10 +99,11 @@ class TemperatureHumidityHandler {
         $sql = "SELECT 
                     s.sensor_id,
                     s.sensor_type,
-                    s.warehouse_id,
-                    w.warehouse_name
+                    s.transport_id,
+                    t.vehicle_license_no,
+                    t.vehicle_type
                 FROM Sensors s
-                LEFT JOIN Warehouses w ON s.warehouse_id = w.warehouse_id
+                LEFT JOIN Transports t ON s.transport_id = t.transport_id
                 ORDER BY s.sensor_id";
         
         $result = $this->conn->query($sql);
@@ -114,13 +119,19 @@ class TemperatureHumidityHandler {
     }
     
     // Add new sensor
-    public function addSensor($sensor_type, $warehouse_id) {
-        $stmt = $this->conn->prepare("INSERT INTO Sensors (sensor_type, warehouse_id) VALUES (?, ?)");
-        $stmt->bind_param("si", $sensor_type, $warehouse_id);
+    public function addSensor($sensor_type, $transport_id) {
+        // Prevent duplicate sensor type on same transport
+        if ($this->isSensorTypeAssignedToTransport($sensor_type, $transport_id)) {
+            return false;
+        }
+        $stmt = $this->conn->prepare("INSERT INTO Sensors (sensor_type, transport_id) VALUES (?, ?)");
+        $stmt->bind_param("si", $sensor_type, $transport_id);
         
         if ($stmt->execute()) {
             $sensor_id = $this->conn->insert_id;
             $stmt->close();
+            // Auto-generate 10 dummy records for this sensor
+            $this->generateDummySensorData($sensor_id, 10);
             return $sensor_id;
         } else {
             error_log("Add sensor failed: " . $stmt->error);
@@ -130,9 +141,19 @@ class TemperatureHumidityHandler {
     }
     
     // Update sensor
-    public function updateSensor($sensor_id, $sensor_type, $warehouse_id) {
-        $stmt = $this->conn->prepare("UPDATE Sensors SET sensor_type = ?, warehouse_id = ? WHERE sensor_id = ?");
-        $stmt->bind_param("sii", $sensor_type, $warehouse_id, $sensor_id);
+    public function updateSensor($sensor_id, $sensor_type, $transport_id) {
+        // Prevent duplicate sensor type on same transport when reassigning
+        $stmtCheck = $this->conn->prepare("SELECT COUNT(*) as cnt FROM Sensors WHERE sensor_type = ? AND transport_id = ? AND sensor_id <> ?");
+        $stmtCheck->bind_param("sii", $sensor_type, $transport_id, $sensor_id);
+        $stmtCheck->execute();
+        $res = $stmtCheck->get_result();
+        $row = $res->fetch_assoc();
+        $stmtCheck->close();
+        if ($row && (int)$row['cnt'] > 0) {
+            return false;
+        }
+        $stmt = $this->conn->prepare("UPDATE Sensors SET sensor_type = ?, transport_id = ? WHERE sensor_id = ?");
+        $stmt->bind_param("sii", $sensor_type, $transport_id, $sensor_id);
         
         $result = $stmt->execute();
         if (!$result) {
@@ -171,6 +192,21 @@ class TemperatureHumidityHandler {
         
         return $warehouses;
     }
+
+    // Get all transports for dropdown
+    public function getAllTransports() {
+        $sql = "SELECT transport_id, vehicle_license_no, vehicle_type FROM Transports ORDER BY vehicle_license_no";
+        $result = $this->conn->query($sql);
+        $transports = [];
+
+        if ($result && $result->num_rows > 0) {
+            while($row = $result->fetch_assoc()) {
+                $transports[] = $row;
+            }
+        }
+
+        return $transports;
+    }
     
     // Get temperature/humidity alerts (values outside normal range)
     public function getTemperatureHumidityAlerts() {
@@ -180,7 +216,7 @@ class TemperatureHumidityHandler {
                     sd.temperature,
                     sd.humidity,
                     s.sensor_type,
-                    w.warehouse_name,
+                    t.vehicle_license_no,
                     CASE 
                         WHEN sd.temperature < 0 OR sd.temperature > 25 THEN 'Temperature Alert'
                         WHEN sd.humidity < 30 OR sd.humidity > 80 THEN 'Humidity Alert'
@@ -188,7 +224,7 @@ class TemperatureHumidityHandler {
                     END as alert_type
                 FROM Sensor_Data sd
                 LEFT JOIN Sensors s ON sd.sensor_id = s.sensor_id
-                LEFT JOIN Warehouses w ON s.warehouse_id = w.warehouse_id
+                LEFT JOIN Transports t ON s.transport_id = t.transport_id
                 WHERE (sd.temperature < 0 OR sd.temperature > 25 OR sd.humidity < 30 OR sd.humidity > 80)
                 ORDER BY sd.timestamp DESC";
         
@@ -240,15 +276,18 @@ class TemperatureHumidityHandler {
                     sd.timestamp,
                     sd.temperature,
                     sd.humidity,
-                    s.sensor_type
+                    s.sensor_type,
+                    t.vehicle_license_no
                 FROM Sensor_Data sd
                 LEFT JOIN Sensors s ON sd.sensor_id = s.sensor_id
+                LEFT JOIN Transports t ON s.transport_id = t.transport_id
                 WHERE s.sensor_type LIKE ? 
                    OR sd.temperature LIKE ?
                    OR sd.humidity LIKE ?
+                   OR t.vehicle_license_no LIKE ?
                 ORDER BY sd.timestamp DESC");
         
-        $stmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
+        $stmt->bind_param("ssss", $searchTerm, $searchTerm, $searchTerm, $searchTerm);
         $stmt->execute();
         $result = $stmt->get_result();
         $sensorData = [];
@@ -261,6 +300,81 @@ class TemperatureHumidityHandler {
         
         $stmt->close();
         return $sensorData;
+    }
+
+    // Helper: check if a sensor type already assigned to the transport
+    public function isSensorTypeAssignedToTransport($sensor_type, $transport_id) {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) as cnt FROM Sensors WHERE sensor_type = ? AND transport_id = ?");
+        $stmt->bind_param("si", $sensor_type, $transport_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        return $row && (int)$row['cnt'] > 0;
+    }
+
+    // Generate dummy sensor data for a given sensor
+    public function generateDummySensorData($sensor_id, $num_points = 24) {
+        // Determine base now time
+        $now = new \DateTime();
+
+        // Determine what fields to generate based on sensor type
+        $stmtType = $this->conn->prepare("SELECT sensor_type FROM Sensors WHERE sensor_id = ?");
+        $stmtType->bind_param("i", $sensor_id);
+        $stmtType->execute();
+        $resultType = $stmtType->get_result();
+        $sensor = $resultType->fetch_assoc();
+        $stmtType->close();
+
+        if (!$sensor) {
+            return 0;
+        }
+
+        $type = $sensor['sensor_type'];
+
+        $inserted = 0;
+        for ($i = $num_points - 1; $i >= 0; $i--) {
+            $time = clone $now;
+            $time->modify('-' . ($i * 30) . ' minutes');
+            $timestamp = $time->format('Y-m-d H:i:s');
+
+            $temperature = null;
+            $humidity = null;
+
+            // Generate values in a realistic range with some variance
+            if ($type === 'Temperature' || $type === 'Temperature/Humidity') {
+                // Base around 5-10 C for cold chain, with occasional spikes
+                $temperature = round(6 + sin($i / 3) * 1.5 + (mt_rand(-10, 10) / 10), 2);
+                // 5% chance of abnormal spike
+                if (mt_rand(1, 100) <= 5) {
+                    $temperature += mt_rand(5, 12);
+                }
+            }
+
+            if ($type === 'Humidity' || $type === 'Temperature/Humidity') {
+                // Base around 55-65% humidity
+                $humidity = round(60 + cos($i / 4) * 8 + (mt_rand(-15, 15) / 10), 2);
+                // 5% chance of abnormal drop/spike
+                if (mt_rand(1, 100) <= 5) {
+                    $humidity += mt_rand(-25, 25);
+                }
+            }
+
+            $stmt = $this->conn->prepare("INSERT INTO Sensor_Data (sensor_id, timestamp, temperature, humidity) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("issd", $sensor_id, $timestamp, $temperature, $humidity);
+            // Note: binding types: i s s d → but we have two decimals; use 'isdd'
+            $stmt->close();
+
+            // Re-prepare with correct bind types
+            $stmt2 = $this->conn->prepare("INSERT INTO Sensor_Data (sensor_id, timestamp, temperature, humidity) VALUES (?, ?, ?, ?)");
+            $stmt2->bind_param("isdd", $sensor_id, $timestamp, $temperature, $humidity);
+            if ($stmt2->execute()) {
+                $inserted++;
+            }
+            $stmt2->close();
+        }
+
+        return $inserted;
     }
 }
 ?>
