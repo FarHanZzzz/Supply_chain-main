@@ -88,6 +88,8 @@ try {
             }
             break;
 
+        // generate_dummy_sensor_data endpoint removed; dummy data is auto-created when adding a sensor
+
         // ==================== SENSOR ENDPOINTS ====================
         case 'get_sensors':
             if ($method === 'GET') {
@@ -101,13 +103,14 @@ try {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $result = $handler->addSensor(
                     $input['sensor_type'],
-                    $input['warehouse_id'] ?? null
+                    $input['transport_id'] ?? null
                 );
                 
                 if ($result) {
                     echo json_encode(['success' => true, 'message' => 'Sensor added successfully', 'id' => $result]);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'Failed to add sensor']);
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'message' => 'Sensor of this type is already assigned to this transport']);
                 }
             }
             break;
@@ -118,13 +121,14 @@ try {
                 $result = $handler->updateSensor(
                     $input['sensor_id'],
                     $input['sensor_type'],
-                    $input['warehouse_id'] ?? null
+                    $input['transport_id'] ?? null
                 );
                 
                 if ($result) {
                     echo json_encode(['success' => true, 'message' => 'Sensor updated successfully']);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'Failed to update sensor']);
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'message' => 'Sensor of this type is already assigned to this transport']);
                 }
             }
             break;
@@ -146,6 +150,13 @@ try {
         case 'get_warehouses':
             if ($method === 'GET') {
                 $data = $handler->getAllWarehouses();
+                echo json_encode(['success' => true, 'data' => $data]);
+            }
+            break;
+
+        case 'get_transports':
+            if ($method === 'GET') {
+                $data = $handler->getAllTransports();
                 echo json_encode(['success' => true, 'data' => $data]);
             }
             break;

@@ -3,6 +3,8 @@
         let sensorData = [];
         let sensors = [];
         let alerts = [];
+        let transports = [];
+        let chart = null;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -12,6 +14,7 @@
         function initializeApp() {
             setupEventListeners();
             loadStats();
+            loadTransports();
             switchTab('sensors');
         }
 
@@ -29,6 +32,18 @@
                 sensorDataSearch.addEventListener('input', function() {
                     filterSensorData(this.value);
                 });
+            }
+
+            // Dummy button removed
+
+            const dataTransportSelect = document.getElementById('dataTransportSelect');
+            if (dataTransportSelect) {
+                dataTransportSelect.addEventListener('change', onDataTransportChange);
+            }
+
+            const dataSensorSelect = document.getElementById('dataSensorSelect');
+            if (dataSensorSelect) {
+                dataSensorSelect.addEventListener('change', loadSensorData);
             }
         }
 
@@ -71,8 +86,18 @@
                 .then(data => {
                     hideLoading('sensorDataLoading');
                     if (data.success) {
-                        sensorData = data.data;
+                        const selectedTransportId = document.getElementById('dataTransportSelect')?.value || '';
+                        const selectedSensorId = document.getElementById('dataSensorSelect')?.value || '';
+                        let all = data.data || [];
+                        if (selectedTransportId) {
+                            all = all.filter(d => String(d.transport_id || '') === String(selectedTransportId));
+                        }
+                        if (selectedSensorId) {
+                            all = all.filter(d => String(d.sensor_id || '') === String(selectedSensorId));
+                        }
+                        sensorData = all;
                         displaySensorData(sensorData);
+                        updateChart(sensorData);
                     } else {
                         showError('Failed to load sensor data');
                     }
@@ -106,16 +131,17 @@
                     <td>
                         <span class="condition-indicator ${getTemperatureClass(item.temperature)}">
                             <i class="fas fa-thermometer-half"></i>
-                            ${item.temperature}°C
+                            ${item.temperature ?? '—'}°C
                         </span>
                     </td>
                     <td>
                         <span class="condition-indicator ${getHumidityClass(item.humidity)}">
                             <i class="fas fa-tint"></i>
-                            ${item.humidity}%
+                            ${item.humidity ?? '—'}%
                         </span>
                     </td>
-                    <td>${item.coordinates || 'N/A'}</td>
+                    <td>${item.vehicle_license_no ? `${item.vehicle_license_no} (${item.vehicle_type || 'Vehicle'})` : 'N/A'}</td>
+                    <td>${renderGoodsCondition(item.temperature, item.humidity)}</td>
                     <td>
                         <div class="action-buttons">
                             <button class="btn btn-sm btn-danger" onclick="deleteSensorData(${item.sensor_data_id})">
@@ -174,6 +200,7 @@
                     if (data.success) {
                         sensors = data.data;
                         displaySensors(sensors);
+                        populateSensorSelect();
                     } else {
                         showError('Failed to load sensors');
                     }
@@ -205,7 +232,7 @@
                 <tr>
                     <td>S-${item.sensor_id}</td>
                     <td>${item.sensor_type || 'N/A'}</td>
-                    <td>${item.warehouse_name || 'N/A'}</td>
+                    <td>${item.vehicle_license_no ? `${item.vehicle_license_no} (${item.vehicle_type || 'Vehicle'})` : 'Unassigned'}</td>
                     <td>
                         <span class="condition-indicator condition-normal">
                             Active
@@ -213,6 +240,7 @@
                     </td>
                     <td>
                         <div class="action-buttons">
+                            <button class=\"btn btn-sm btn-info\" onclick=\"viewSensorData(${item.sensor_id}, ${item.transport_id || 'null'})\">\n                                <i class=\"fas fa-chart-line\"></i>\n                                View Data\n                            </button>
                             <button class="btn btn-sm btn-primary" onclick="openEditSensorModal(${item.sensor_id})">
                                 <i class="fas fa-edit"></i>
                                 Edit
@@ -241,14 +269,13 @@
                                 <option value="">Select Type</option>
                                 <option value="Temperature">Temperature</option>
                                 <option value="Humidity">Humidity</option>
-                                <option value="Temperature/Humidity">Temperature/Humidity</option>
-                                <option value="GPS">GPS</option>
+                                 <option value="Temperature/Humidity">Temperature/Humidity</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="warehouseSelect">Warehouse:</label>
-                            <select id="warehouseSelect" required>
-                                <option value="">Select Warehouse</option>
+                            <label for="transportSelect">Transport:</label>
+                            <select id="transportSelect" required>
+                                <option value="">Select Transport</option>
                             </select>
                         </div>
                         <div class="modal-actions">
@@ -260,7 +287,7 @@
             `;
             
             showModal(modalContent);
-            loadWarehouseOptions();
+            loadTransportOptions();
             
             document.getElementById('sensorForm').addEventListener('submit', handleAddSensor);
         }
@@ -283,18 +310,14 @@
                     <form id="editSensorForm">
                         <input type="hidden" id="editSensorId" value="${sensor.sensor_id}">
                         <div class="form-group">
-                            <label for="editSensorType">Sensor Type:</label>
-                            <select id="editSensorType" required>
-                                <option value="Temperature" ${sensor.sensor_type === 'Temperature' ? 'selected' : ''}>Temperature</option>
-                                <option value="Humidity" ${sensor.sensor_type === 'Humidity' ? 'selected' : ''}>Humidity</option>
-                                <option value="Temperature/Humidity" ${sensor.sensor_type === 'Temperature/Humidity' ? 'selected' : ''}>Temperature/Humidity</option>
-                                <option value="GPS" ${sensor.sensor_type === 'GPS' ? 'selected' : ''}>GPS</option>
-                            </select>
+                            <label>Sensor Type:</label>
+                            <div class="condition-indicator condition-normal">${sensor.sensor_type}</div>
+                            <input type="hidden" id="editSensorType" value="${sensor.sensor_type}">
                         </div>
                         <div class="form-group">
-                            <label for="editWarehouseSelect">Warehouse:</label>
-                            <select id="editWarehouseSelect" required>
-                                <option value="">Select Warehouse</option>
+                            <label for="editTransportSelect">Transport:</label>
+                            <select id="editTransportSelect" required>
+                                <option value="">Select Transport</option>
                             </select>
                         </div>
                         <div class="modal-actions">
@@ -306,7 +329,7 @@
             `;
             
             showModal(modalContent);
-            loadWarehouseOptions('editWarehouseSelect', sensor.warehouse_id);
+            loadTransportOptions('editTransportSelect', sensor.transport_id);
             
             document.getElementById('editSensorForm').addEventListener('submit', handleEditSensor);
         }
@@ -314,10 +337,18 @@
         function handleAddSensor(e) {
             e.preventDefault();
             
-            const formData = {
-                sensor_type: document.getElementById('sensorType').value,
-                warehouse_id: document.getElementById('warehouseSelect').value
-            };
+            const sensorType = document.getElementById('sensorType').value;
+            const transportId = document.getElementById('transportSelect').value;
+            if (!sensorType || !transportId) {
+                showError('Please select sensor type and transport');
+                return;
+            }
+            const dup = sensors.some(s => String(s.transport_id || '') === String(transportId) && String(s.sensor_type) === String(sensorType));
+            if (dup) {
+                showError('This transport already has a sensor of the selected type');
+                return;
+            }
+            const formData = { sensor_type: sensorType, transport_id: transportId };
             
             fetch('api.php?action=add_sensor', {
                 method: 'POST',
@@ -330,9 +361,12 @@
             .then(data => {
                 if (data.success) {
                     showSuccess('Sensor added successfully');
+                    const newSensorId = data.id;
                     closeModal();
                     loadSensors();
                     loadStats();
+                    // Navigate to sensor data filtered
+                    setTimeout(() => { goToSensorDataFor(newSensorId, transportId); }, 200);
                 } else {
                     showError(data.message || 'Failed to add sensor');
                 }
@@ -346,11 +380,19 @@
         function handleEditSensor(e) {
             e.preventDefault();
             
-            const formData = {
-                sensor_id: document.getElementById('editSensorId').value,
-                sensor_type: document.getElementById('editSensorType').value,
-                warehouse_id: document.getElementById('editWarehouseSelect').value
-            };
+            const sensorId = document.getElementById('editSensorId').value;
+            const editType = document.getElementById('editSensorType').value;
+            const editTransportId = document.getElementById('editTransportSelect').value;
+            if (!editType || !editTransportId) {
+                showError('Please select transport');
+                return;
+            }
+            const dupEdit = sensors.some(s => String(s.transport_id || '') === String(editTransportId) && String(s.sensor_type) === String(editType) && String(s.sensor_id) !== String(sensorId));
+            if (dupEdit) {
+                showError('This transport already has a sensor of that type');
+                return;
+            }
+            const formData = { sensor_id: sensorId, sensor_type: editType, transport_id: editTransportId };
             
             fetch('api.php?action=update_sensor', {
                 method: 'POST',
@@ -460,7 +502,7 @@
                             ${item.humidity}%
                         </span>
                     </td>
-                    <td>${item.warehouse_name || 'N/A'}</td>
+                    <td>${item.vehicle_license_no || 'N/A'}</td>
                 </tr>
             `).join('');
         }
@@ -493,17 +535,31 @@
         }
 
         function getTemperatureClass(temperature) {
-            if (!temperature) return 'condition-normal';
+            if (temperature === null || temperature === undefined || temperature === '') return 'condition-normal';
             if (temperature < 0 || temperature > 25) return 'condition-danger';
             if (temperature < 2 || temperature > 20) return 'condition-warning';
             return 'condition-normal';
         }
 
         function getHumidityClass(humidity) {
-            if (!humidity) return 'condition-normal';
+            if (humidity === null || humidity === undefined || humidity === '') return 'condition-normal';
             if (humidity < 30 || humidity > 80) return 'condition-danger';
             if (humidity < 40 || humidity > 70) return 'condition-warning';
             return 'condition-normal';
+        }
+
+        function renderGoodsCondition(temperature, humidity) {
+            // Define optimal ranges
+            const tempOk = temperature !== null && temperature !== undefined && temperature >= 2 && temperature <= 8;
+            const humOk = humidity !== null && humidity !== undefined && humidity >= 40 && humidity <= 70;
+
+            if (tempOk && humOk) {
+                return '<span class="condition-indicator condition-normal"><i class="fas fa-check-circle"></i> Optimal</span>';
+            }
+            if ((temperature !== null && temperature !== undefined && (temperature < 0 || temperature > 25)) || (humidity !== null && humidity !== undefined && (humidity < 30 || humidity > 80))) {
+                return '<span class="condition-indicator condition-danger"><i class="fas fa-exclamation-triangle"></i> At Risk</span>';
+            }
+            return '<span class="condition-indicator condition-warning"><i class="fas fa-exclamation-circle"></i> Suboptimal</span>';
         }
 
         function formatDateTime(dateString) {
@@ -587,18 +643,19 @@
             }
         }
 
-        function loadWarehouseOptions(selectId = 'warehouseSelect', selectedId = null) {
-            fetch('api.php?action=get_warehouses')
+        function loadTransportOptions(selectId = 'transportSelect', selectedId = null) {
+            fetch('api.php?action=get_transports')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         const select = document.getElementById(selectId);
-                        select.innerHTML = '<option value="">Select Warehouse</option>';
-                        data.data.forEach(warehouse => {
+                        if (!select) return;
+                        select.innerHTML = '<option value="">Select Transport</option>';
+                        data.data.forEach(t => {
                             const option = document.createElement('option');
-                            option.value = warehouse.warehouse_id;
-                            option.textContent = warehouse.warehouse_name;
-                            if (selectedId && warehouse.warehouse_id == selectedId) {
+                            option.value = t.transport_id;
+                            option.textContent = `${t.vehicle_license_no} (${t.vehicle_type})`;
+                            if (selectedId && String(t.transport_id) === String(selectedId)) {
                                 option.selected = true;
                             }
                             select.appendChild(option);
@@ -606,6 +663,124 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading warehouse options:', error);
+                    console.error('Error loading transport options:', error);
                 });
+        }
+
+        function loadTransports() {
+            fetch('api.php?action=get_transports')
+                .then(r => r.json())
+                .then(json => {
+                    if (json.success) {
+                        transports = json.data || [];
+                        const sel = document.getElementById('dataTransportSelect');
+                        if (sel) {
+                            sel.innerHTML = '<option value="">Select Transport</option>';
+                            transports.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t.transport_id;
+                                opt.textContent = `${t.vehicle_license_no} (${t.vehicle_type})`;
+                                sel.appendChild(opt);
+                            });
+                        }
+                    }
+                })
+                .catch(e => console.error('Error loading transports', e));
+        }
+
+        function onDataTransportChange() {
+            populateSensorSelect();
+            loadSensorData();
+        }
+
+        function populateSensorSelect() {
+            const sensorSelect = document.getElementById('dataSensorSelect');
+            if (!sensorSelect) return;
+            sensorSelect.innerHTML = '<option value="">Select Sensor</option>';
+            const tId = document.getElementById('dataTransportSelect')?.value || '';
+            const filtered = tId ? sensors.filter(s => String(s.transport_id || '') === String(tId)) : sensors;
+            filtered.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.sensor_id;
+                opt.textContent = `S-${s.sensor_id} (${s.sensor_type})`;
+                sensorSelect.appendChild(opt);
+            });
+        }
+
+        function viewSensorData(sensorId, transportId) {
+            if (!sensorId) return;
+            const tId = transportId || (sensors.find(s => String(s.sensor_id) === String(sensorId))?.transport_id);
+            goToSensorDataFor(sensorId, tId);
+        }
+
+        function goToSensorDataFor(sensorId, transportId) {
+            const tSel = document.getElementById('dataTransportSelect');
+            const sSel = document.getElementById('dataSensorSelect');
+            if (tSel) tSel.value = String(transportId || '');
+            populateSensorSelect();
+            if (sSel) sSel.value = String(sensorId || '');
+            switchTab('sensor-data');
+            loadSensorData();
+        }
+
+        // Dummy generation removed; created automatically on add
+
+        function updateChart(rows) {
+            const ctx = document.getElementById('sensorLineChart');
+            if (!ctx) return;
+            const sorted = [...rows].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const labels = sorted.map(r => formatTimeShort(r.timestamp));
+            const temps = sorted.map(r => isFiniteNumber(r.temperature) ? Number(r.temperature) : null);
+            const hums = sorted.map(r => isFiniteNumber(r.humidity) ? Number(r.humidity) : null);
+
+            if (chart) {
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = temps;
+                chart.data.datasets[1].data = hums;
+                chart.update();
+                return;
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: temps,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239,68,68,0.2)',
+                            tension: 0.3,
+                            spanGaps: true
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: hums,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.2)',
+                            tension: 0.3,
+                            spanGaps: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        }
+
+        function isFiniteNumber(v) {
+            return v !== null && v !== undefined && v !== '' && isFinite(Number(v));
+        }
+
+        function formatTimeShort(dateString) {
+            if (!dateString) return '';
+            const d = new Date(dateString);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }

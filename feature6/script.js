@@ -335,7 +335,7 @@ async function viewDocument(documentId) {
                     <h6>Document Details</h6>
                     <p class="mb-1"><strong>Issue Date:</strong> ${formatDate(docData.issue_date) || 'N/A'}</p>
                     <p class="mb-1"><strong>Issued By:</strong> ${docData.issued_by || 'N/A'}</p>
-                    <p class="mb-1"><strong>File:</strong> ${docData.file_path || 'No file attached'}</p>
+                    
                 </div>
             </div>
             
@@ -345,12 +345,10 @@ async function viewDocument(documentId) {
             </div>
         `;
         
-        // Add download functionality if file exists
-        if (docData.file_path) {
-            document.getElementById('downloadBtn').addEventListener('click', () => {
-                downloadDocument(docData.file_path);
-            });
-        }
+        // Attach generate PDF using jsPDF (Feature 1 style)
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            generateDocumentPDF(docData);
+        });
         
     } catch (error) {
         console.error('Error loading document:', error);
@@ -365,34 +363,41 @@ async function viewDocument(documentId) {
 }
 
 // Download document
-function downloadDocument(filePath) {
-    if (!filePath) {
-        alert('No file available for download');
-        return;
-    }
-    
-    try {
-        // Create a temporary link
-        const link = document.createElement('a');
-        
-        // Handle both absolute and relative paths
-        if (filePath.startsWith('http') || filePath.startsWith('/')) {
-            link.href = filePath;
-        } else {
-            // If it's a relative path, make it absolute
-            link.href = window.location.origin + '/' + filePath;
-        }
-        
-        link.download = filePath.split('/').pop() || 'document';
-        link.style.display = 'none';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } catch (error) {
-        console.error('Download failed:', error);
-        alert('Failed to download document. Please check the file path.');
-    }
+function generateDocumentPDF(doc) {
+    const { jsPDF } = window.jspdf;
+    const docPdf = new jsPDF();
+    const title = `${doc.document_type || 'Document'} (${doc.document_number || 'N/A'})`;
+    docPdf.setFontSize(16);
+    docPdf.text(title, 14, 16);
+
+    docPdf.setFontSize(11);
+    const rows1 = [
+        ['Status', doc.approval_status || 'N/A'],
+        ['Issue Date', formatDate(doc.issue_date) || 'N/A'],
+        ['Issued By', doc.issued_by || 'N/A'],
+    ];
+    docPdf.autoTable({ startY: 22, head: [['Field', 'Value']], body: rows1, theme: 'grid' });
+
+    const startY2 = docPdf.lastAutoTable.finalY + 6;
+    docPdf.setFontSize(13);
+    docPdf.text('Shipment Information', 14, startY2);
+    const rows2 = [
+        ['Shipment ID', doc.shipment_id ? `SH-${String(doc.shipment_id).padStart(5,'0')}` : 'N/A'],
+        ['Destination', doc.shipment_destination || 'N/A'],
+        ['Shipment Date', formatDate(doc.shipment_date) || 'N/A'],
+        ['Driver', doc.driver_name || 'N/A'],
+        ['Vehicle', doc.vehicle_type || 'N/A'],
+    ];
+    docPdf.autoTable({ startY: startY2 + 4, head: [['Field', 'Value']], body: rows2, theme: 'grid' });
+
+    const startY3 = docPdf.lastAutoTable.finalY + 6;
+    docPdf.setFontSize(13);
+    docPdf.text('Notes', 14, startY3);
+    const noteText = doc.notes || 'No notes available';
+    const split = docPdf.splitTextToSize(noteText, 180);
+    docPdf.text(split, 14, startY3 + 6);
+
+    docPdf.save(`${(doc.document_type || 'document').replace(/\s+/g,'_')}_${doc.document_number || 'N_A'}.pdf`);
 }
 
 // Save document (add or update)
@@ -404,7 +409,7 @@ async function saveDocument() {
         document_number: document.getElementById('documentNumber').value,
         issue_date: document.getElementById('issueDate').value,
         issued_by: document.getElementById('issuedBy').value,
-        file_path: document.getElementById('filePath').value,
+        // file_path removed per requirements
         approval_status: document.getElementById('approvalStatus').value,
         notes: document.getElementById('notes').value
     };
