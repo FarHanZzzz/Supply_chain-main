@@ -414,12 +414,22 @@ INSERT INTO Route_Defaults (route_id, default_current_location, default_remainin
 (14, 'Habiganj, Bangladesh',     60.00),
 (15, 'Srimangal, Bangladesh',    40.00);
 
+-- Corrected Shipment_Progress seeds (all attributes + consistency with Shipments, Routes, Route_Defaults)
 INSERT INTO Shipment_Progress
-  (shipment_id, route_id, dispatch_time, current_location, remaining_distance_km, estimated_arrival_time)
+  (shipment_id, route_id, dispatch_time, destination, current_location, remaining_distance_km, estimated_arrival_time)
 VALUES
-  (1,  1,  '2025-08-10 08:00:00', 'Narayanganj, Bangladesh',  35.50, '2025-08-10 12:30:00'),
-  (2,  4,  '2025-08-11 07:30:00', 'Feni, Bangladesh',        120.00, '2025-08-11 16:45:00'),
-  (3, 13,  '2025-08-12 06:15:00', 'Moulvibazar, Bangladesh',  85.75, '2025-08-12 13:10:00');
+  -- Shipment 1 → Dhaka (Route 1 defaults: Narayanganj, 35.50)
+  (1, 1,  '2025-08-10 08:00:00', 'Dhaka, Bangladesh',        'Narayanganj, Bangladesh',  35.50, '2025-08-10 14:00:00'),
+
+  -- Shipment 2 → Chittagong (Route 4 defaults: Feni, 120.00)
+  (2, 4,  '2025-08-11 07:30:00', 'Chittagong, Bangladesh',   'Feni, Bangladesh',        120.00, '2025-08-11 15:30:00'),
+
+  -- Shipment 3 → Sylhet (Route 13 defaults: Moulvibazar, 85.75)
+  (3, 13, '2025-08-12 06:15:00', 'Sylhet, Bangladesh',       'Moulvibazar, Bangladesh',  85.75, '2025-08-12 12:35:00'),
+
+  -- Shipment 4 → Khulna (Route 9 defaults: Magura, 88.00)
+  (4, 9,  '2025-08-13 09:00:00', 'Khulna, Bangladesh',       'Magura, Bangladesh',       88.00, '2025-08-13 14:50:00');
+
 
 
 INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, issue_date, issued_by, file_path, approval_status, notes) VALUES
