@@ -364,7 +364,8 @@ INSERT INTO Drivers (first_name, last_name, phone_number) VALUES
 INSERT INTO Transports (driver_id, vehicle_type, vehicle_license_no, vehicle_capacity, current_capacity) VALUES
 (1, 'Truck', 'TRK-001', 5000.00, 0.00),
 (2, 'Van', 'VAN-002', 2000.00, 0.00),
-(3, 'Refrigerated Truck', 'REF-003', 3000.00, 0.00);
+(3, 'Refrigerated Truck', 'REF-003', 3000.00, 0.00),
+(4, 'Trailer', 'TEA-004', 5000.00, 0.00);
 
 -- Seed data (omit shipment_id, let it auto-increment)
 INSERT INTO Shipments
@@ -373,7 +374,7 @@ VALUES
   (1, 2, NULL, '2025-08-10', 'Dhaka, Bangladesh', 'In Transit', 2500.00),
   (2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'In Transit', 4000.00),
   (3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'In Transit', 1800.00),
-  (1, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
+  (4, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
 
 INSERT INTO Routes (route_name, destination, duration, distance, road_condition) VALUES
 -- Dhaka

@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataViz | Analyst Dashboard</title>
-    <!-- Bootstrap CSS -->
+    
+    <!-- External Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
             --sidebar-width: 280px;
@@ -31,15 +31,21 @@
             --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
         }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background: linear-gradient(135deg, #faf5ff 0%, #f0f9ff 50%, #f8fafc 100%);
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow-x: hidden;
             color: #334155;
             min-height: 100vh;
         }
 
-        /* Sidebar styling */
+        /* Sidebar Styles */
         .sidebar {
             position: fixed;
             top: 0;
@@ -69,6 +75,11 @@
             font-size: 1.4rem;
             letter-spacing: -0.5px;
             color: white;
+            margin: 0;
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0;
         }
 
         .sidebar-menu ul {
@@ -86,6 +97,7 @@
             transition: var(--transition);
             border-left: 3px solid transparent;
             font-weight: 500;
+            cursor: pointer;
         }
 
         .sidebar-menu li a:hover,
@@ -111,18 +123,55 @@
         }
 
         .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
             padding: 1rem 1.5rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 0.75rem;
             color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.2);
         }
 
-        /* Top bar styling */
+        /* Mobile Toggle Button */
+        .toggle-btn {
+            position: fixed;
+            top: 1.25rem;
+            left: 1.25rem;
+            background: var(--gradient-primary);
+            color: var(--text-light);
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem;
+            transition: var(--transition);
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
         .top-bar {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             padding: 0.8rem 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             margin-bottom: 1.5rem;
             display: flex;
             justify-content: space-between;
@@ -131,7 +180,6 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            transition: var(--transition);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
@@ -162,6 +210,7 @@
             background: rgba(139, 92, 246, 0.1);
             transition: var(--transition);
             color: var(--primary-color);
+            cursor: pointer;
         }
 
         .notification-bell:hover {
@@ -171,13 +220,14 @@
 
         .notification-badge {
             position: absolute;
-            top: 0;
-            right: 0;
+            top: -2px;
+            right: -2px;
             width: 12px;
             height: 12px;
             border-radius: 50%;
             background: var(--danger-color);
             border: 2px solid white;
+            display: none;
         }
 
         .user-dropdown {
@@ -210,77 +260,7 @@
             background-clip: text;
         }
 
-        .dropdown-menu {
-            border-radius: 0.75rem;
-            border: none;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
-            padding: 0.5rem;
-            min-width: 200px;
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .dropdown-item {
-            padding: 0.6rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            transition: var(--transition);
-            color: #334155;
-        }
-
-        .dropdown-item:hover {
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--primary-color);
-        }
-
-        /* Main content area */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 1.5rem;
-            transition: var(--transition);
-        }
-
-        /* Adjust content margin when sidebar is collapsed */
-        @media (max-width: 992px) {
-            .main-content {
-                margin-left: 0;
-            }
-            .sidebar.collapsed + .main-content {
-                margin-left: var(--sidebar-width);
-            }
-        }
-
-        /* Toggle button for small screens */
-        .toggle-btn {
-            position: fixed;
-            top: 1.25rem;
-            left: 1.25rem;
-            background: var(--gradient-primary);
-            color: var(--text-light);
-            border: none;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            display: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-            transition: var(--transition);
-        }
-
-        .toggle-btn:hover {
-            transform: scale(1.05);
-        }
-
-        @media (max-width: 992px) {
-            .toggle-btn {
-                display: flex;
-            }
-        }
-
-        /* Card styling */
+        /* Cards */
         .stat-card {
             border: none;
             border-radius: 1rem;
@@ -305,15 +285,15 @@
         .stat-card.primary::before {
             background: var(--gradient-primary);
         }
-        
+
         .stat-card.success::before {
             background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
         }
-        
+
         .stat-card.warning::before {
             background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
         }
-        
+
         .stat-card.danger::before {
             background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
         }
@@ -386,33 +366,119 @@
             background: var(--gradient-accent);
         }
 
-        /* Feature iframe */
+        .chart-card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            background: white;
+            transition: var(--transition);
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-card .card-header {
+            border: none;
+            background: rgba(139, 92, 246, 0.05);
+            padding: 1.25rem 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .chart-card .card-body {
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* Feature Frame */
         .feature-frame {
             width: 100%;
-            height: 0;
-            min-height: 700px;
+            height: 700px;
             border: 0;
             border-radius: 1rem;
             background: white;
             box-shadow: var(--card-shadow);
             transition: var(--transition);
+            display: none;
         }
 
-        .feature-frame.active {
-            height: auto;
+        /* Activity Feed */
+        .activity-feed {
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .stat-card .value {
-                font-size: 1.75rem;
-            }
-            
-            .stat-card .icon {
-                width: 48px;
-                height: 48px;
-                font-size: 1.25rem;
-            }
+        .activity-feed li {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .activity-feed li:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        /* Custom Button */
+        .btn-analyst {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            font-weight: 600;
+            transition: var(--transition);
+            border-radius: 0.5rem;
+        }
+
+        .btn-analyst:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+            color: white;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .status-processing {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info-color);
+        }
+
+        .status-complete {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
         }
 
         /* Animations */
@@ -425,36 +491,75 @@
             animation: fadeIn 0.6s ease-out forwards;
         }
 
-        /* Custom button styling */
-        .btn-analyst {
-            background: var(--gradient-primary);
-            border: none;
-            color: white;
-            font-weight: 600;
-            transition: var(--transition);
+        /* Loading State */
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
         }
 
-        .btn-analyst:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-            color: white;
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1055;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .toggle-btn {
+                display: flex;
+            }
+            
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+            
+            .top-bar .controls .btn-toolbar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stat-card .value {
+                font-size: 1.75rem;
+            }
+            
+            .stat-card .icon {
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+            
+            .top-bar h1 {
+                font-size: 1.2rem;
+            }
+            
+            .user-dropdown span {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Mobile sidebar toggle -->
+    <!-- Mobile Sidebar Toggle -->
     <button class="toggle-btn" id="sidebarToggle">
         <i class="fas fa-bars"></i>
     </button>
 
-    <!-- Sidebar navigation -->
+    <!-- Sidebar Navigation -->
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
-            <h3 class="d-flex align-items-center mb-0">
-                <i class="fas fa-chart-area me-2"></i> 
-                <span class="fw-bold">DataViz</span>
+            <h3 class="d-flex align-items-center">
+                <i class="fas fa-chart-area me-2"></i>
+                <span>DataViz</span>
             </h3>
         </div>
+        
         <nav class="sidebar-menu">
             <ul>
                 <li>
@@ -464,92 +569,53 @@
                     </a>
                 </li>
                 <li>
-                    <a
-                        href="/feature1/"
-                        data-target="iframe"
-                        data-url="/feature1/"
-                        data-title="Data Sources"
-                    >
+                    <a href="#" data-target="iframe" data-url="/feature1/" data-title="Data Sources">
                         <i class="fas fa-database"></i>
                         Data Sources
                     </a>
                 </li>
                 <li>
-                    <a
-                        href="/feature2/"
-                        data-target="iframe"
-                        data-url="/feature2/"
-                        data-title="Dataset Explorer"
-                    >
+                    <a href="#" data-target="iframe" data-url="/feature2/" data-title="Dataset Explorer">
                         <i class="fas fa-table"></i>
                         Dataset Explorer
                     </a>
                 </li>
                 <li>
-                    <a
-                        href="/feature3/"
-                        data-target="iframe"
-                        data-url="/feature3/"
-                        data-title="Visualization Studio"
-                    >
+                    <a href="#" data-target="iframe" data-url="/feature3/" data-title="Visualization Studio">
                         <i class="fas fa-chart-bar"></i>
                         Visualization Studio
                     </a>
                 </li>
+            
                 <li>
-                    <a
-                        href="/feature4/"
-                        data-target="iframe"
-                        data-url="/feature4/"
-                        data-title="Statistical Analysis"
-                    >
-                        <i class="fas fa-calculator"></i>
-                        Statistical Analysis
-                    </a>
-                </li>
-                <li>
-                    <a
-                        href="/feature5/"
-                        data-target="iframe"
-                        data-url="/feature5/"
-                        data-title="Machine Learning"
-                    >
+                    <a href="#" data-target="iframe" data-url="/feature5/" data-title="Machine Learning">
                         <i class="fas fa-brain"></i>
                         Machine Learning
                     </a>
                 </li>
                 <li>
-                    <a
-                        href="/feature6/"
-                        data-target="iframe"
-                        data-url="/feature6/"
-                        data-title="Report Builder"
-                    >
+                    <a href="#" data-target="iframe" data-url="/feature6/" data-title="Report Builder">
                         <i class="fas fa-file-chart"></i>
                         Report Builder
                     </a>
                 </li>
                 <li>
-                    <a
-                        href="/feature7/"
-                        data-target="iframe"
-                        data-url="/feature7/"
-                        data-title="Data Quality Monitor"
-                    >
+                    <a href="#" data-target="iframe" data-url="/feature7/" data-title="Data Quality Monitor">
                         <i class="fas fa-shield-check"></i>
                         Data Quality
                     </a>
                 </li>
             </ul>
         </nav>
+        
         <div class="sidebar-footer">
-            <small>DataViz v3.2</small>
+            <small>DataViz v3.2.0</small>
         </div>
     </aside>
 
-    <!-- Main content -->
+    <!-- Main Content Area -->
     <main class="main-content">
-        <!-- Top bar -->
+        <!-- Top Navigation Bar -->
         <div class="top-bar">
             <div>
                 <h1 id="pageTitle">Analytics Overview</h1>
@@ -561,66 +627,54 @@
                             <i class="fas fa-download me-1"></i> Export Analysis
                         </button>
                     </div>
-                    <button type="button" class="btn btn-sm btn-light border dropdown-toggle">
-                        <i class="fas fa-calendar me-1"></i> Last 30 Days
-                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-calendar me-1"></i> Last 30 Days
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">Last 7 Days</a></li>
+                            <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
+                            <li><a class="dropdown-item" href="#">Last Quarter</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Custom Range</a></li>
+                        </ul>
+                    </div>
                 </div>
                 
-                <div class="notification-bell">
+                <div class="notification-bell" id="notificationBell">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge"></span>
+                    <span class="notification-badge" id="notificationBadge"></span>
                 </div>
                 
                 <div class="dropdown user-dropdown">
-                    <a
-                        class="dropdown-toggle d-flex align-items-center"
-                        href="#"
-                        role="button"
-                        id="userDropdown"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                    >
-                        <img
-                            src="https://ui-avatars.com/api/?name=Data+Analyst&background=8b5cf6&color=fff&bold=true"
-                            alt="Data Analyst"
-                            class="rounded-circle"
-                        />
-                        <span class="ms-2 d-none d-md-inline">Data Analyst</span>
+                    <a class="dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=Data+Analyst&background=8b5cf6&color=fff&bold=true" alt="Data Analyst">
+                        <span class="ms-2">Data Analyst</span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-user me-2"></i> Profile
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-cog me-2"></i> Settings
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li>
-                            <a class="dropdown-item" href="/home/">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
-                            </a>
-                        </li>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/home/"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
                     </ul>
                 </div>
             </div>
         </div>
 
-        <!-- Dashboard overview (default view) -->
+        <!-- Dashboard Home Content -->
         <section id="dashboardHome">
-            <!-- First Row of Cards -->
+            <!-- Statistics Cards - Row 1 -->
             <div class="row g-4 mb-4">
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card primary fade-in" style="animation-delay: 0.1s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Active Datasets</h6>
+                                    <h6>Active Datasets</h6>
                                     <div class="value">89</div>
-                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 15 new this month</small>
+                                    <small class="text-success">
+                                        <i class="fas fa-arrow-up me-1"></i> 15 new this month
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-database"></i>
@@ -629,14 +683,17 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card success fade-in" style="animation-delay: 0.2s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Data Quality Score</h6>
+                                    <h6>Data Quality Score</h6>
                                     <div class="value">94.7%</div>
-                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 2.3% improvement</small>
+                                    <small class="text-success">
+                                        <i class="fas fa-arrow-up me-1"></i> 2.3% improvement
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-shield-check"></i>
@@ -645,14 +702,17 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card secondary fade-in" style="animation-delay: 0.3s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Processing Speed</h6>
+                                    <h6>Processing Speed</h6>
                                     <div class="value">2.4TB/hr</div>
-                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 18% faster</small>
+                                    <small class="text-success">
+                                        <i class="fas fa-arrow-up me-1"></i> 18% faster
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-tachometer-alt"></i>
@@ -662,17 +722,19 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Second Row of Cards -->
+
+            <!-- Statistics Cards - Row 2 -->
             <div class="row g-4 mb-4">
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card info fade-in" style="animation-delay: 0.4s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">ML Models Deployed</h6>
+                                    <h6>ML Models Deployed</h6>
                                     <div class="value">27</div>
-                                    <small class="text-success"><i class="fas fa-robot me-1"></i> 5 this week</small>
+                                    <small class="text-success">
+                                        <i class="fas fa-robot me-1"></i> 5 this week
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-brain"></i>
@@ -681,14 +743,17 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card warning fade-in" style="animation-delay: 0.5s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Pending Analysis</h6>
+                                    <h6>Pending Analysis</h6>
                                     <div class="value">14</div>
-                                    <small class="text-warning"><i class="fas fa-clock me-1"></i> 6 high priority</small>
+                                    <small class="text-warning">
+                                        <i class="fas fa-clock me-1"></i> 6 high priority
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-hourglass-half"></i>
@@ -697,14 +762,17 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card danger fade-in" style="animation-delay: 0.6s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Data Anomalies</h6>
+                                    <h6>Data Anomalies</h6>
                                     <div class="value">3</div>
-                                    <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i> Requires investigation</small>
+                                    <small class="text-danger">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Requires investigation
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-exclamation-triangle"></i>
@@ -715,16 +783,18 @@
                 </div>
             </div>
 
-            <!-- Third Row of Cards -->
+            <!-- Statistics Cards - Row 3 -->
             <div class="row g-4 mb-4">
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card primary fade-in" style="animation-delay: 0.7s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Reports Generated</h6>
+                                    <h6>Reports Generated</h6>
                                     <div class="value">156</div>
-                                    <small class="text-info"><i class="fas fa-file-chart me-1"></i> This month</small>
+                                    <small class="text-info">
+                                        <i class="fas fa-file-chart me-1"></i> This month
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-file-chart"></i>
@@ -733,14 +803,17 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card success fade-in" style="animation-delay: 0.8s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Model Accuracy</h6>
+                                    <h6>Model Accuracy</h6>
                                     <div class="value">91.3%</div>
-                                    <small class="text-success"><i class="fas fa-bullseye me-1"></i> Above benchmark</small>
+                                    <small class="text-success">
+                                        <i class="fas fa-bullseye me-1"></i> Above benchmark
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-bullseye"></i>
@@ -749,14 +822,17 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="card stat-card secondary fade-in" style="animation-delay: 0.9s;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="card-title">Storage Usage</h6>
+                                    <h6>Storage Usage</h6>
                                     <div class="value">67.2%</div>
-                                    <small class="text-info"><i class="fas fa-hdd me-1"></i> 2.8TB of 4.2TB</small>
+                                    <small class="text-info">
+                                        <i class="fas fa-hdd me-1"></i> 2.8TB of 4.2TB
+                                    </small>
                                 </div>
                                 <div class="icon">
                                     <i class="fas fa-hdd"></i>
@@ -766,20 +842,385 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Charts Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-lg-8">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Analytics Performance Trends</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="performanceChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-lg-4">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Data Sources Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="dataSourceChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row -->
+            <div class="row g-4">
+                <div class="col-12 col-lg-6">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent Data Activity</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="activity-feed">
+                                <li>
+                                    <div class="activity-icon">
+                                        <i class="fas fa-database"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">New Dataset Uploaded</div>
+                                        <div class="text-muted small">Customer behavioral data (2.3GB) successfully ingested</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">15 minutes ago</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="activity-icon" style="background: var(--gradient-accent);">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">ML Model Deployed</div>
+                                        <div class="text-muted small">Customer churn prediction model v2.1 deployed to production</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">1 hour ago</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="activity-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">Visualization Created</div>
+                                        <div class="text-muted small">Sales performance dashboard shared with executive team</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">3 hours ago</div>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="activity-icon" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">Data Quality Check</div>
+                                        <div class="text-muted small">Weekly data quality assessment completed - 98.2% accuracy</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">Yesterday</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 col-lg-6">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">System Status & Alerts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success d-flex align-items-start" role="alert">
+                                <i class="fas fa-check-circle me-3 mt-1 fs-5"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">All Systems Operational</h6>
+                                    <p class="mb-2 small">Data pipelines running smoothly with 99.8% uptime</p>
+                                    <small class="text-muted">Last updated: 5 minutes ago • <span class="status-badge status-complete">Healthy</span></small>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning d-flex align-items-start" role="alert">
+                                <i class="fas fa-exclamation-triangle me-3 mt-1 fs-5"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">High Memory Usage</h6>
+                                    <p class="mb-2 small">Analytics cluster memory at 87% - consider scaling</p>
+                                    <small class="text-muted">30 minutes ago • <span class="status-badge status-pending">Monitor</span></small>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info d-flex align-items-start" role="alert">
+                                <i class="fas fa-info-circle me-3 mt-1 fs-5"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Scheduled Maintenance</h6>
+                                    <p class="mb-2 small">Database optimization scheduled for this weekend</p>
+                                    <small class="text-muted">Planned for Saturday 2 AM • <span class="status-badge status-processing">Scheduled</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <!-- Feature iframe: toggled when user selects a feature -->
-        <iframe
-            id="featureFrame"
-            class="feature-frame"
-            title="Feature Frame"
-        ></iframe>
+        <!-- Feature iframe for sub-pages -->
+        <iframe id="featureFrame" class="feature-frame" title="Feature Content"></iframe>
     </main>
 
-    <!-- Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
 
-    <!-- Dashboard logic -->
-    <script src="dataAnalystdashboard.js"></script>
+    <!-- JavaScript Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // DataViz Dashboard JavaScript
+        class DataVizDashboard {
+            constructor() {
+                this.sidebar = document.getElementById('sidebar');
+                this.sidebarToggle = document.getElementById('sidebarToggle');
+                this.dashboardHome = document.getElementById('dashboardHome');
+                this.featureFrame = document.getElementById('featureFrame');
+                this.pageTitle = document.getElementById('pageTitle');
+                this.notificationBadge = document.getElementById('notificationBadge');
+                
+                this.initializeEventListeners();
+                this.initializeCharts();
+                this.showDashboard();
+                this.updateNotificationCount(5);
+            }
+
+            initializeEventListeners() {
+                // Mobile sidebar toggle
+                if (this.sidebarToggle) {
+                    this.sidebarToggle.addEventListener('click', () => {
+                        this.sidebar.classList.toggle('collapsed');
+                    });
+                }
+
+                // Navigation links
+                const navLinks = document.querySelectorAll('.sidebar-menu a');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.handleNavigation(link);
+                    });
+                });
+
+                // Responsive handling
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 992) {
+                        this.sidebar.classList.remove('collapsed');
+                    }
+                });
+
+                // Notification bell
+                const notificationBell = document.getElementById('notificationBell');
+                if (notificationBell) {
+                    notificationBell.addEventListener('click', () => {
+                        this.showNotification('You have 5 data processing alerts', 'info');
+                    });
+                }
+            }
+
+            handleNavigation(link) {
+                // Update active states
+                document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                const target = link.getAttribute('data-target');
+                const url = link.getAttribute('data-url');
+                const title = link.getAttribute('data-title');
+
+                // Update page title
+                if (title) {
+                    this.pageTitle.textContent = title;
+                }
+
+                // Navigate based on target
+                if (target === 'dashboard') {
+                    this.showDashboard();
+                } else if (target === 'iframe' && url) {
+                    this.showFeature(url);
+                }
+
+                // Close mobile sidebar
+                if (window.innerWidth <= 992) {
+                    this.sidebar.classList.add('collapsed');
+                }
+            }
+
+            showDashboard() {
+                this.dashboardHome.style.display = 'block';
+                this.featureFrame.style.display = 'none';
+                this.featureFrame.src = '';
+            }
+
+            showFeature(url) {
+                this.dashboardHome.style.display = 'none';
+                this.featureFrame.style.display = 'block';
+                this.featureFrame.classList.add('loading');
+                
+                this.featureFrame.src = url;
+                
+                this.featureFrame.onload = () => {
+                    this.featureFrame.classList.remove('loading');
+                };
+
+                this.featureFrame.onerror = () => {
+                    this.featureFrame.classList.remove('loading');
+                    this.showError(`Failed to load: ${url}`);
+                };
+            }
+
+            showError(message) {
+                const errorContent = `
+                    <div class="d-flex align-items-center justify-content-center" style="height: 60vh;">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
+                            <h3 class="mb-3">Content Unavailable</h3>
+                            <p class="text-muted mb-4">${message}</p>
+                            <button class="btn btn-analyst" onclick="location.reload()">
+                                <i class="fas fa-refresh me-2"></i>Reload Page
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                this.dashboardHome.innerHTML = errorContent;
+                this.dashboardHome.style.display = 'block';
+                this.featureFrame.style.display = 'none';
+            }
+
+            updateNotificationCount(count) {
+                if (this.notificationBadge) {
+                    this.notificationBadge.style.display = count > 0 ? 'block' : 'none';
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const toastHTML = `
+                    <div class="toast align-items-center text-bg-${type} border-0" role="alert">
+                        <div class="d-flex">
+                            <div class="toast-body">${message}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>
+                `;
+                
+                let container = document.querySelector('.toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'toast-container';
+                    document.body.appendChild(container);
+                }
+                
+                container.insertAdjacentHTML('beforeend', toastHTML);
+                const toastElement = container.lastElementChild;
+                const toast = new bootstrap.Toast(toastElement);
+                toast.show();
+                
+                // Auto remove after hide
+                toastElement.addEventListener('hidden.bs.toast', () => {
+                    toastElement.remove();
+                });
+            }
+
+            initializeCharts() {
+                // Performance Trends Chart
+                const performanceCtx = document.getElementById('performanceChart');
+                if (performanceCtx) {
+                    new Chart(performanceCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                            datasets: [{
+                                label: 'Data Processing (TB)',
+                                data: [1.2, 1.8, 2.1, 2.4, 2.2, 2.8],
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4
+                            }, {
+                                label: 'Model Accuracy (%)',
+                                data: [87, 89, 91, 88, 90, 93],
+                                borderColor: '#06b6d4',
+                                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { usePointStyle: true, padding: 20 }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+
+                // Data Sources Chart
+                const dataSourceCtx = document.getElementById('dataSourceChart');
+                if (dataSourceCtx) {
+                    new Chart(dataSourceCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Databases', 'APIs', 'Files', 'Streams', 'Cloud'],
+                            datasets: [{
+                                data: [35, 25, 20, 12, 8],
+                                backgroundColor: [
+                                    '#8b5cf6',
+                                    '#06b6d4', 
+                                    '#10b981',
+                                    '#f59e0b',
+                                    '#ef4444'
+                                ],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { usePointStyle: true, padding: 15 }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // Initialize Dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboard = new DataVizDashboard();
+            window.dataVizDashboard = dashboard;
+            
+            // Welcome notification
+            setTimeout(() => {
+                dashboard.showNotification('Welcome to DataViz Analytics Dashboard!', 'success');
+            }, 1000);
+        });
+
+        // Handle iframe messages
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'navigate') {
+                console.log('Navigation request from iframe:', event.data);
+            }
+        });
+    </script>
 </body>
 </html>
