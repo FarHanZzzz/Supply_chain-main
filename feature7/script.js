@@ -1,736 +1,277 @@
-// Global variables
-let deliveries = [];
-let transports = [];
-let kpis = {};
-let drivers = [];
-let vehicleTypes = [];
-let vehicleCapacities = [];
-let charts = {};
+// Feature 7 — Bright KPI cards + Compact 3-row layout + Ranked Driver Leaderboard
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Feature 7 page loaded');
-    
-    // Test API connection first
-    testAPI();
-    
-    loadAll();
-});
+let chOnTime, chVolumeStatus, chCostDest, chSpoilagePie;
 
-// Test API connection
-function testAPI() {
-    console.log('Testing API connection...');
-    fetch('api.php?action=test')
-        .then(res => res.json())
-        .then(data => {
-            console.log('API test successful:', data);
-        })
-        .catch(error => {
-            console.error('API test failed:', error);
-        });
-}
+const $ = sel => document.querySelector(sel);
 
-// Load all data
-function loadAll() {
-    fetchKPIs();
-    fetchDeliveries();
-    fetchTransports();
-    fetchDrivers();
-    fetchVehicleTypes();
-    fetchVehicleCapacities();
-    
-    // Load chart data after a short delay to ensure data is available
-    setTimeout(() => {
-        updateSpoilageChart();
-    }, 500);
-}
-
-// ===== KPI FUNCTIONS =====
-
-function fetchKPIs() {
-    console.log('Fetching KPIs...');
-    fetch('api.php?action=kpis')
-        .then(res => {
-            console.log('KPIs response status:', res.status);
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then(data => {
-            console.log('KPIs data received:', data);
-            kpis = data;
-            updateKPIStats();
-        })
-        .catch(error => {
-            console.error('Error fetching KPIs:', error);
-            console.error('Error details:', error.message);
-        });
-}
-
-function updateKPIStats() {
-    document.getElementById('totalDeliveries').textContent = kpis.total_deliveries || 0;
-    document.getElementById('onTimeDeliveries').textContent = kpis.on_time_deliveries || 0;
-    document.getElementById('carrierReliability').textContent = (kpis.carrier_reliability || 0) + '%';
-    document.getElementById('totalSpoilage').textContent = kpis.total_spoilage || 0;
-    
-    // Hide loading, show stats
-    document.getElementById('loadingStats').style.display = 'none';
-    document.getElementById('statsGrid').style.display = 'grid';
-}
-
-// ===== DELIVERY FUNCTIONS =====
-
-function fetchDeliveries() {
-    console.log('Fetching deliveries...');
-    fetch('api.php?action=deliveries')
-        .then(res => {
-            console.log('Deliveries response status:', res.status);
-            return res.json();
-        })
-        .then(data => {
-            console.log('Deliveries data received:', data);
-            deliveries = data;
-            renderDeliveriesTable();
-            updateDeliveryCharts();
-        })
-        .catch(error => {
-            console.error('Error fetching deliveries:', error);
-            console.error('Error details:', error.message);
-        });
-}
-
-function renderDeliveriesTable() {
-    const tbody = document.getElementById('deliveriesTableBody');
-    tbody.innerHTML = '';
-    
-    deliveries.forEach(delivery => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${delivery.delivery_id}</td>
-            <td>${delivery.expected_time || ''}</td>
-            <td>${delivery.delivered_time || ''}</td>
-            <td>${delivery.spoilage_quantity || 0}</td>
-            <td><span class="status-badge status-${delivery.delivery_status?.replace(' ', '-')}">${delivery.delivery_status || ''}</span></td>
-            <td><span class="status-badge status-${delivery.delivery_success}">${delivery.delivery_success || ''}</span></td>
-            <td>
-                <button class="btn btn-edit" onclick="editDelivery(${delivery.delivery_id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-delete" onclick="deleteDelivery(${delivery.delivery_id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-    
-    // Hide loading, show table
-    document.getElementById('loadingDeliveries').style.display = 'none';
-    document.getElementById('deliveriesTable').style.display = 'table';
-}
-
-function openDeliveryModal(id = null) {
-    const modal = document.getElementById('deliveryModal');
-    const title = document.getElementById('deliveryModalTitle');
-    const form = document.getElementById('deliveryForm');
-    
-    if (id) {
-        // Edit mode
-        title.textContent = 'Edit Delivery';
-        const delivery = deliveries.find(d => d.delivery_id == id);
-        if (delivery) {
-            populateDeliveryForm(delivery);
-            form.dataset.deliveryId = String(id);
-        }
-    } else {
-        // Add mode
-        title.textContent = 'Add New Delivery';
-        form.reset();
-        delete form.dataset.deliveryId;
-    }
-    
-    modal.style.display = 'block';
-}
-
-function closeDeliveryModal() {
-    document.getElementById('deliveryModal').style.display = 'none';
-}
-
-function populateDeliveryForm(delivery) {
-    document.getElementById('deliveryDate').value = delivery.delivery_date || '';
-    document.getElementById('expectedTime').value = delivery.expected_time || '';
-    document.getElementById('deliveredTime').value = delivery.delivered_time || '';
-    document.getElementById('deliveryManName').value = delivery.delivery_man_name || '';
-    document.getElementById('spoilageQuantity').value = delivery.spoilage_quantity || 0;
-    document.getElementById('deliveryStatus').value = delivery.delivery_status || '';
-    document.getElementById('deliverySuccess').value = delivery.delivery_success || '';
-}
-
-function editDelivery(id) {
-    openDeliveryModal(id);
-}
-
-function saveDelivery() {
-    const form = document.getElementById('deliveryForm');
-    const formData = {
-        action: form.dataset.deliveryId ? 'update_delivery' : 'add_delivery',
-        delivery_date: document.getElementById('deliveryDate').value,
-        delivery_time: document.getElementById('deliveredTime').value,
-        delivery_man_name: document.getElementById('deliveryManName').value,
-        expected_time: document.getElementById('expectedTime').value,
-        delivered_time: document.getElementById('deliveredTime').value,
-        spoilage_quantity: parseInt(document.getElementById('spoilageQuantity').value) || 0,
-        delivery_status: document.getElementById('deliveryStatus').value,
-        delivery_success: document.getElementById('deliverySuccess').value
-    };
-    if (form.dataset.deliveryId) {
-        formData.delivery_id = parseInt(form.dataset.deliveryId);
-    }
-    
-    fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            closeDeliveryModal();
-            loadAll();
-        } else {
-            alert('Error saving delivery: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error saving delivery');
-    });
-}
-
-function deleteDelivery(id) {
-    if (!confirm('Are you sure you want to delete this delivery?')) return;
-    
-    fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_delivery', delivery_id: id })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-        loadAll();
-        } else {
-            alert('Error deleting delivery: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error deleting delivery');
-    });
-}
-
-// ===== TRANSPORT FUNCTIONS =====
-
-function fetchTransports() {
-    console.log('Fetching transports...');
-    fetch('api.php?action=transports')
-        .then(res => {
-            console.log('Transports response status:', res.status);
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then(data => {
-            console.log('Transports data received:', data);
-            transports = data;
-            renderTransportsTable();
-            updateVehicleCharts();
-        })
-        .catch(error => {
-            console.error('Error fetching transports:', error);
-            console.error('Error details:', error.message);
-        });
-}
-
-function renderTransportsTable() {
-    const tbody = document.getElementById('transportsTableBody');
-    tbody.innerHTML = '';
-    
-    transports.forEach(transport => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${transport.transport_id}</td>
-            <td>${transport.vehicle_license_no || ''}</td>
-            <td>${transport.vehicle_type || ''}</td>
-            <td>${transport.vehicle_capacity || 0}</td>
-            <td><span class="status-badge status-${transport.vehicle_status?.replace(' ', '-')}">${transport.vehicle_status || ''}</span></td>
-            <td>${transport.carrier_reliability || 0}%</td>
-            <td>
-                <button class="btn btn-edit" onclick="editTransport(${transport.transport_id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-delete" onclick="deleteTransport(${transport.transport_id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-    
-    // Hide loading, show table
-    document.getElementById('loadingTransports').style.display = 'none';
-    document.getElementById('transportsTable').style.display = 'table';
-}
-
-function openTransportModal(id = null) {
-    const modal = document.getElementById('transportModal');
-    const title = document.getElementById('transportModalTitle');
-    const form = document.getElementById('transportForm');
-    
-    populateAllDropdowns();
-    if (id) {
-        // Edit mode
-        title.textContent = 'Edit Transport';
-        const transport = transports.find(t => t.transport_id == id);
-        if (transport) {
-            populateTransportForm(transport);
-            form.dataset.transportId = String(id);
-        }
-    } else {
-        // Add mode
-        title.textContent = 'Add New Transport';
-        form.reset();
-        delete form.dataset.transportId;
-    }
-    
-    modal.style.display = 'block';
-}
-
-function closeTransportModal() {
-    document.getElementById('transportModal').style.display = 'none';
-}
-
-function populateTransportForm(transport) {
-    document.getElementById('driverId').value = transport.driver_id || '';
-    document.getElementById('vehicleType').value = transport.vehicle_type || '';
-    document.getElementById('vehicleLicenseNo').value = transport.vehicle_license_no || '';
-    document.getElementById('vehicleCapacity').value = transport.vehicle_capacity || '';
-    document.getElementById('vehicleStatus').value = transport.vehicle_status || '';
-}
-
-function editTransport(id) {
-    openTransportModal(id);
-}
-
-function saveTransport() {
-    const form = document.getElementById('transportForm');
-    const license = (document.getElementById('vehicleLicenseNo').value || '').toUpperCase().trim();
-    const licenseFormat = /^[A-Z]{3}-\d{3,4}$/;
-    if (!licenseFormat.test(license)) { alert('Invalid vehicle license format. Use ABC-123 or ABC-1234'); return; }
-    if (!form.dataset.transportId && transports.some(t => (t.vehicle_license_no||'').toUpperCase() === license)) {
-        alert('Vehicle license already exists. It must be unique.');
-        return;
-    }
-    const payload = {
-        action: form.dataset.transportId ? 'update_transport' : 'add_transport',
-        driver_id: parseInt(document.getElementById('driverId').value),
-        vehicle_type: document.getElementById('vehicleType').value,
-        vehicle_license_no: license,
-        vehicle_capacity: parseFloat(document.getElementById('vehicleCapacity').value),
-        vehicle_status: document.getElementById('vehicleStatus').value
-    };
-    if (form.dataset.transportId) payload.transport_id = parseInt(form.dataset.transportId);
-    fetch('api.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-      .then(async res => { const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.error||'Failed'); return data; })
-      .then(() => { closeTransportModal(); fetchTransports(); fetchKPIs(); })
-      .catch(err => alert(err.message));
-}
-
-function deleteTransport(id) {
-    if (!confirm('Are you sure you want to delete this transport?')) return;
-    
-    fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_transport', transport_id: id })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            loadAll();
-        } else {
-            alert('Error deleting transport: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error deleting transport');
-    });
-}
-
-// ===== DRIVER FUNCTIONS =====
-
-function fetchDrivers() {
-    console.log('Fetching drivers...');
-    fetch('api.php?action=drivers_dropdown')
-        .then(res => {
-            console.log('Drivers response status:', res.status);
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then(data => {
-            console.log('Drivers data received:', data);
-            drivers = data;
-        })
-        .catch(error => {
-            console.error('Error fetching drivers:', error);
-            console.error('Error details:', error.message);
-        });
-}
-
-function fetchVehicleTypes() {
-    console.log('Fetching vehicle types...');
-    fetch('api.php?action=vehicle_types_dropdown')
-        .then(res => {
-            console.log('Vehicle types response status:', res.status);
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then(data => {
-            console.log('Vehicle types data received:', data);
-            vehicleTypes = data;
-        })
-        .catch(error => {
-            console.error('Error fetching vehicle types:', error);
-            console.error('Error details:', error.message);
-        });
-}
-
-function fetchVehicleCapacities() {
-    console.log('Fetching vehicle capacities...');
-    fetch('api.php?action=vehicle_capacities_dropdown')
-        .then(res => {
-            console.log('Vehicle capacities response status:', res.status);
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then(data => {
-            console.log('Vehicle capacities data received:', data);
-            vehicleCapacities = data;
-        })
-        .catch(error => {
-            console.error('Error fetching vehicle capacities:', error);
-            console.error('Error details:', error.message);
-        });
-}
-
-function populateDriversDropdown() {
-    const select = document.getElementById('driverId');
-    select.innerHTML = '<option value="">Select Driver</option>';
-    
-    drivers.forEach(driver => {
-        const option = document.createElement('option');
-        option.value = driver.id;
-        option.textContent = driver.label;
-        select.appendChild(option);
-    });
-}
-
-function populateVehicleTypeDropdown() {
-    const select = document.getElementById('vehicleType');
-    select.innerHTML = '<option value="">Select Vehicle Type</option>';
-    
-    vehicleTypes.forEach(type => {
-        const option = document.createElement('option');
-        option.value = type;
-        option.textContent = type;
-        select.appendChild(option);
-    });
-}
-
-function populateVehicleCapacityDropdown() {
-    const select = document.getElementById('vehicleCapacity');
-    select.innerHTML = '<option value="">Select Vehicle Capacity</option>';
-    
-    vehicleCapacities.forEach(capacity => {
-        const option = document.createElement('option');
-        option.value = capacity;
-        option.textContent = capacity;
-        select.appendChild(option);
-    });
-}
-
-function populateAllDropdowns() {
-    populateDriversDropdown();
-    populateVehicleTypeDropdown();
-    populateVehicleCapacityDropdown();
-}
-
-// ===== CHART FUNCTIONS =====
-
-function updateDeliveryCharts() {
-    fetch('api.php?action=delivery_chart')
-        .then(res => res.json())
-        .then(data => {
-            renderDeliveryChart(data);
-        })
-        .catch(error => console.error('Error fetching delivery chart data:', error));
-}
-
-function updateVehicleCharts() {
-    fetch('api.php?action=vehicle_chart')
-        .then(res => res.json())
-        .then(data => {
-            renderVehicleChart(data);
-        })
-        .catch(error => console.error('Error fetching vehicle chart data:', error));
-}
-
-function updateSpoilageChart() {
-    fetch('api.php?action=spoilage_chart')
-        .then(res => res.json())
-        .then(data => {
-            renderSpoilageChart(data);
-        })
-        .catch(error => console.error('Error fetching spoilage chart data:', error));
-}
-
-function renderDeliveryChart(data) {
-    const ctx = document.getElementById('deliveryChart').getContext('2d');
-    
-    if (charts.delivery) charts.delivery.destroy();
-    
-    charts.delivery = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(data),
-            datasets: [{
-                data: Object.values(data),
-                backgroundColor: ['#28a745', '#dc3545'],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            },
-            layout: {
-                padding: 20
-            }
-        }
-    });
-}
-
-function renderVehicleChart(data) {
-    const ctx = document.getElementById('vehicleChart').getContext('2d');
-    
-    if (charts.vehicle) charts.vehicle.destroy();
-    
-    charts.vehicle = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(data),
-            datasets: [{
-                label: 'Vehicle Count',
-                data: Object.values(data),
-                backgroundColor: ['#17a2b8', '#ffc107', '#dc3545', '#6c757d'],
-                borderWidth: 1,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            },
-            layout: {
-                padding: 20
-            }
-        }
-    });
-}
-
-function renderSpoilageChart(data) {
-    const ctx = document.getElementById('spoilageChart').getContext('2d');
-    
-    if (charts.spoilage) charts.spoilage.destroy();
-    
-    charts.spoilage = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(data),
-            datasets: [{
-                data: Object.values(data),
-                backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#dc3545'],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            },
-            layout: {
-                padding: 20
-            }
-        }
-    });
-}
-
-
-// ===== SEARCH AND FILTER FUNCTIONS =====
-
-function searchDeliveries() {
-    const searchTerm = document.getElementById('deliverySearch').value.toLowerCase();
-    const filteredDeliveries = deliveries.filter(delivery => 
-        delivery.delivery_man_name?.toLowerCase().includes(searchTerm) ||
-        delivery.delivery_status?.toLowerCase().includes(searchTerm) ||
-        delivery.delivery_success?.toLowerCase().includes(searchTerm)
-    );
-    renderFilteredDeliveries(filteredDeliveries);
-}
-
-function filterDeliveries(status) {
-    if (status === 'all') {
-        renderDeliveriesTable();
-        return;
-    }
-    
-    const filteredDeliveries = deliveries.filter(delivery => 
-        delivery.delivery_status === status
-    );
-    renderFilteredDeliveries(filteredDeliveries);
-}
-
-function renderFilteredDeliveries(filteredDeliveries) {
-    const tbody = document.getElementById('deliveriesTableBody');
-    tbody.innerHTML = '';
-    
-    filteredDeliveries.forEach(delivery => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${delivery.delivery_id}</td>
-            <td>${delivery.expected_time || ''}</td>
-            <td>${delivery.delivered_time || ''}</td>
-            <td>${delivery.spoilage_quantity || 0}</td>
-            <td><span class="status-badge status-${delivery.delivery_status?.replace(' ', '-')}">${delivery.delivery_status || ''}</span></td>
-            <td><span class="status-badge status-${delivery.delivery_success}">${delivery.delivery_success || ''}</span></td>
-            <td>
-                <button class="btn btn-edit" onclick="editDelivery(${delivery.delivery_id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-delete" onclick="deleteDelivery(${delivery.delivery_id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function searchTransports() {
-    const searchTerm = document.getElementById('transportSearch').value.toLowerCase();
-    const filteredTransports = transports.filter(transport => 
-        transport.vehicle_license_no?.toLowerCase().includes(searchTerm) ||
-        transport.vehicle_type?.toLowerCase().includes(searchTerm) ||
-        transport.vehicle_status?.toLowerCase().includes(searchTerm)
-    );
-    renderFilteredTransports(filteredTransports);
-}
-
-function filterTransports(status) {
-    if (status === 'all') {
-        renderTransportsTable();
-        return;
-    }
-    
-    const filteredTransports = transports.filter(transport => 
-        transport.vehicle_status === status
-    );
-    renderFilteredTransports(filteredTransports);
-}
-
-function renderFilteredTransports(filteredTransports) {
-    const tbody = document.getElementById('transportsTableBody');
-    tbody.innerHTML = '';
-    
-    filteredTransports.forEach(transport => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${transport.transport_id}</td>
-            <td>${transport.vehicle_license_no || ''}</td>
-            <td>${transport.vehicle_type || ''}</td>
-            <td>${transport.vehicle_capacity || 0}</td>
-            <td><span class="status-badge status-${transport.vehicle_status?.replace(' ', '-')}">${transport.vehicle_status || ''}</span></td>
-            <td>${transport.carrier_reliability || 0}%</td>
-            <td>
-                <button class="btn btn-edit" onclick="editTransport(${transport.transport_id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-delete" onclick="deleteTransport(${transport.transport_id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-// ===== UTILITY FUNCTIONS =====
-
-// Close modals when clicking outside
-window.onclick = function(event) {
-    const deliveryModal = document.getElementById('deliveryModal');
-    const transportModal = document.getElementById('transportModal');
-    
-    if (event.target === deliveryModal) {
-        closeDeliveryModal();
-    }
-    if (event.target === transportModal) {
-        closeTransportModal();
-    }
+// Vibrant palette
+const COLORS = {
+  blue:   '#3B82F6',
+  green:  '#22C55E',
+  amber:  '#F59E0B',
+  red:    '#EF4444',
+  purple: '#8B5CF6',
+  teal:   '#14B8A6',
+  rose:   '#F43F5E',
+  indigo: '#6366F1'
 };
 
-// Update all charts when data changes
-function updateAllCharts() {
-    updateDeliveryCharts();
-    updateVehicleCharts();
-    updateSpoilageChart();
-    updateReliabilityChart();
+// Formatting
+const money = n => (n === null || n === undefined || isNaN(n)) ? '—' :
+  Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmt = (n, d=2) => (n === null || n === undefined || isNaN(n)) ? '—' : Number(n).toFixed(d);
+const fmtInt = n => (n === null || n === undefined || isNaN(n)) ? '0' : String(Math.round(n));
+const pct = n => (n === null || n === undefined || isNaN(n)) ? '—' : `${(n * 100).toFixed(1)}%`;
+
+// Build QS from filters
+function buildQS(){
+  const p = new URLSearchParams();
+  const map = {
+    from: $('#fromDate').value,
+    to: $('#toDate').value,
+    destination: $('#destinationSel').value,
+    driver_id: $('#driverSel').value,
+    transport_id: $('#transportSel').value,
+    route_id: $('#routeSel').value,
+    status: $('#statusSel').value
+  };
+  for (const [k,v] of Object.entries(map)) if (v) p.set(k, v);
+  return p.toString();
 }
 
-// Refresh all data
-function refreshData() {
-    loadAll();
+// ---------- DIMENSIONS ----------
+async function loadDimensions(){
+  try{
+    const res = await fetch('api.php?action=analytics_dimensions');
+    const dims = await res.json();
+
+    const setOpts = (sel, items, toText, toVal) => {
+      sel.innerHTML = '<option value="">All</option>';
+      (items||[]).forEach(it=>{
+        const opt = document.createElement('option');
+        opt.value = toVal ? toVal(it) : it;
+        opt.textContent = toText ? toText(it) : it;
+        sel.appendChild(opt);
+      });
+    };
+
+    setOpts($('#destinationSel'), dims.destinations);
+    setOpts($('#driverSel'), dims.drivers, d=>d.driver_name, d=>d.driver_id);
+    setOpts($('#transportSel'), dims.transports, t=>`${t.vehicle_type} — ${t.driver_name||'N/A'}`, t=>t.transport_id);
+    setOpts($('#routeSel'), dims.routes, r=>`${r.route_name} • ${r.distance||0}km • ${(r.duration||'').slice(0,5)}`, r=>r.route_id);
+
+  }catch(e){
+    console.error('Failed to load dimensions', e);
+  }
 }
 
+// ---------- KPIs ----------
+function setDelta(elId, val, invert=false){
+  const el = document.getElementById(elId);
+  el.className = 'delta';
+  if (val === null || val === undefined || isNaN(val)) { el.textContent = '—'; return; }
+  const shown = (val*100).toFixed(1) + '% vs prev.';
+  const good = invert ? (val < 0) : (val > 0);
+  el.textContent = (val>0?'+':'') + shown;
+  el.classList.add(val===0 ? 'flat' : (good ? 'up' : 'down'));
+}
 
+let _lastKPIs = null;
 
+async function loadKPIs(){
+  const res = await fetch(`api.php?action=kpis&${buildQS()}`);
+  const k = await res.json();
+  _lastKPIs = k;
+
+  $('#kpiTotalShipments').textContent      = fmtInt(k.total_shipments);
+  $('#kpiDispatched').textContent          = fmtInt(k.dispatched);
+  $('#kpiDelivered').textContent           = fmtInt(k.delivered);
+  $('#kpiAvgTransit').textContent          = fmt(k.avg_transit_hours, 2);
+  $('#kpiTotalCost').textContent           = `$${money(k.total_cost)}`;
+  $('#kpiAvgCost').textContent             = `$${money(k.avg_cost_per_shipment)}`;
+  $('#kpiCostPerKm').textContent           = k.cost_per_km != null ? `$${fmt(k.cost_per_km, 2)}` : '—';
+  $('#kpiDispatchCompliance').textContent  = k.dispatch_compliance != null ? (k.dispatch_compliance*100).toFixed(1)+'%' : '—';
+
+  setDelta('deltaTotalShipments', k.total_shipments_delta);
+  setDelta('deltaDispatched', k.dispatched_delta);
+  setDelta('deltaDelivered', k.delivered_delta);
+  setDelta('deltaAvgTransit', k.avg_transit_hours_delta, /*invert=*/true);
+  setDelta('deltaTotalCost', k.total_cost_delta);
+  setDelta('deltaAvgCost', k.avg_cost_per_shipment_delta);
+  setDelta('deltaCostPerKm', k.cost_per_km_delta);
+  setDelta('deltaDispatchCompliance', k.dispatch_compliance_delta);
+
+  renderTop5Table(k);
+}
+
+function renderTop5Table(k){
+  const rows = [
+    { name: 'Total Shipments', value: fmtInt(k.total_shipments), def:'Count of shipments in period.'},
+    { name: 'Dispatched Shipments', value: fmtInt(k.dispatched), def:'Shipments with at least one progress log.'},
+    { name: 'Delivered Shipments', value: fmtInt(k.delivered), def:'Shipments with status = Delivered.'},
+    { name: 'Avg Planned Transit Time (hrs)', value: fmt(k.avg_transit_hours,2), def:'Avg(ETA - Dispatch) across progress rows.'},
+    { name: 'Total Transport Cost ($)', value: money(k.total_cost), def:'Sum of transportation_cost.'}
+  ];
+  const tbody = $('#kpiTop5Body');
+  tbody.innerHTML = '';
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.name}</strong></td>
+      <td>${r.value}</td>
+      <td class="muted">${r.def}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---------- ANALYTICS (Charts + Leaderboard) ----------
+async function loadAnalytics(){
+  const res = await fetch(`api.php?action=analytics&${buildQS()}`);
+  const a = await res.json();
+  drawOnTime(a.on_time_weekly);
+  drawVolumeStatus(a.volume_status_daily);
+  drawCostDestination(a.cost_per_destination);
+  drawSpoilagePie(a.spoilage_summary);
+  renderDriverLeaderboard(a.driver_reliability); // NEW
+}
+
+function destroyIf(ch){ if (ch) ch.destroy(); }
+
+// On-Time Delivery Rate (weekly)
+function drawOnTime(d){
+  destroyIf(chOnTime);
+  const ctx = document.getElementById('onTimeWeekly').getContext('2d');
+  chOnTime = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [{
+        label: 'On-Time %',
+        data: d.rates,
+        borderColor: COLORS.green,
+        backgroundColor: 'rgba(34,197,94,.15)',
+        tension: .25,
+        pointRadius: 3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v=>v+'%' } } },
+      plugins: { legend: { display: true } }
+    }
+  });
+}
+
+// Shipment Volume & Status Trend (daily)
+function drawVolumeStatus(d){
+  destroyIf(chVolumeStatus);
+  const ctx = document.getElementById('volumeStatusDaily').getContext('2d');
+  chVolumeStatus = new Chart(ctx, {
+    data: {
+      labels: d.labels,
+      datasets: [
+        { type:'bar', label:'Planned',     backgroundColor: COLORS.blue,  data: d.planned, stack: 'status' },
+        { type:'bar', label:'In Transit',  backgroundColor: COLORS.amber, data: d.in_transit, stack: 'status' },
+        { type:'bar', label:'Delivered',   backgroundColor: COLORS.green, data: d.delivered, stack: 'status' },
+        { type:'bar', label:'Pending',     backgroundColor: COLORS.red,   data: d.pending, stack: 'status' },
+        { type:'line',label:'Total',       borderColor: COLORS.purple,    data: d.total, tension:.25, yAxisID:'y1', pointRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation:false,
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, title: { display:true, text:'Shipments (stacked)' } },
+        y1:{ beginAtZero:true, position:'right', grid:{ drawOnChartArea:false }, title:{ display:true, text:'Total' } }
+      },
+      plugins: { legend: { position:'bottom' } }
+    }
+  });
+}
+
+// Transport Cost per Destination & Cost-per-Km
+function drawCostDestination(d){
+  destroyIf(chCostDest);
+  const ctx = document.getElementById('costByDestination').getContext('2d');
+  chCostDest = new Chart(ctx, {
+    data: {
+      labels: d.labels,
+      datasets: [
+        { type:'bar',  label:'Total Cost ($)', backgroundColor: COLORS.indigo, data: d.costs, yAxisID:'y' },
+        { type:'line', label:'Cost per Km ($/km)', borderColor: COLORS.teal, data: d.cost_per_km, tension:.25, yAxisID:'y1', pointRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation:false,
+      scales: {
+        y:  { beginAtZero: true, title:{display:true, text:'Total Cost ($)'} },
+        y1: { beginAtZero: true, position:'right', grid:{ drawOnChartArea:false }, title:{display:true, text:'$/km'} }
+      },
+      plugins: { legend: { position:'bottom' } }
+    }
+  });
+}
+
+// Spoilage Pie
+function drawSpoilagePie(s){
+  destroyIf(chSpoilagePie);
+  const ctx = document.getElementById('spoilagePie').getContext('2d');
+  chSpoilagePie = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Spoiled', 'Not Spoiled'],
+      datasets: [{
+        data: [s.spoiled, s.ok],
+        backgroundColor: [COLORS.rose, COLORS.green],
+        borderColor: '#fff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins: { legend: { position:'bottom' } }
+    }
+  });
+}
+
+// Ranked Driver Leaderboard (Top 5 cards)
+function renderDriverLeaderboard(data){
+  const host = $('#driverLeaderboardList');
+  host.innerHTML = '';
+  // data.items: [{driver, success_rate, on_time_rate, deliveries}]
+  (data.items || []).forEach((d, idx) => {
+    const card = document.createElement('div');
+    card.className = 'driver-card';
+    card.innerHTML = `
+      <div class="rank-badge">#${idx+1}</div>
+      <div class="driver-meta">
+        <div class="driver-name">#${idx+1}. ${d.driver || 'Unknown'}</div>
+        <div class="driver-metrics">
+          Success Rate: <strong>${fmt(d.success_rate,1)}%</strong><br/>
+          On-Time Rate: <strong>${fmt(d.on_time_rate,1)}%</strong><br/>
+          Deliveries: <strong>${fmtInt(d.deliveries)}</strong>
+        </div>
+      </div>
+    `;
+    host.appendChild(card);
+  });
+}
+
+// ---------- INIT ----------
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await loadDimensions();
+  await Promise.all([loadKPIs(), loadAnalytics()]);
+
+  ['fromDate','toDate','destinationSel','driverSel','transportSel','routeSel','statusSel']
+    .forEach(id => document.getElementById(id).addEventListener('change', ()=>{
+      loadKPIs(); loadAnalytics();
+    }));
+  document.getElementById('applyBtn').addEventListener('click', ()=>{ loadKPIs(); loadAnalytics(); });
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    ['fromDate','toDate','destinationSel','driverSel','transportSel','routeSel','statusSel']
+      .forEach(id => document.getElementById(id).value = '');
+    loadKPIs(); loadAnalytics();
+  });
+});
