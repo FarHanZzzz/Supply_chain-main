@@ -371,8 +371,8 @@ INSERT INTO Shipments
   (transport_id, harvest_batch_id, packaged_product_batch_id, shipment_date, shipment_destination, status, transportation_cost)
 VALUES
   (1, 2, NULL, '2025-08-10', 'Dhaka, Bangladesh', 'In Transit', 2500.00),
-  (2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'Pending', 4000.00),
-  (3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'Delivered', 1800.00),
+  (2, NULL, 3, '2025-08-11', 'Chittagong, Bangladesh', 'In Transit', 4000.00),
+  (3, 3, NULL, '2025-08-12', 'Sylhet, Bangladesh', 'In Transit', 1800.00),
   (1, NULL, 2, '2025-08-13', 'Khulna, Bangladesh', 'In Transit', 3000.00);
 
 INSERT INTO Routes (route_name, destination, duration, distance, road_condition) VALUES
