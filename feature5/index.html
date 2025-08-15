@@ -398,14 +398,17 @@
         }
 
         .modal-content {
-            background: var(--surface);
+            background: #111B18;
+            color: #E8F6F2;
+            backdrop-filter: blur(6px);
+            margin: 5% auto;
+            padding: 24px;
             border-radius: 20px;
-            max-width: 600px;
             width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
+            max-width: 500px;
             box-shadow: var(--shadow-lg);
             border: 1px solid var(--border);
+            animation: slideIn .22s ease-out;
         }
 
         .modal-header {
@@ -443,41 +446,43 @@
             color: var(--ink);
         }
 
-        .modal-body {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--ink);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            background: var(--surface);
-            color: var(--ink);
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary-600);
-            box-shadow: 0 0 0 3px var(--ring);
-        }
+    .modal-header{
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3{
+      font-size: 1.25rem; color: #D5EEE7;
+    }
+    .close{
+      color: #A3B1AD; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1;
+    }
+    .close:hover{ color: #F2FFFC; }
+    .form-group{ margin-bottom: 16px; }
+    .form-group label{
+      display: block; margin-bottom: 6px; font-weight: 700; color: #D6E9E4; font-size: .95rem;
+    }
+    .form-group input,
+    .form-group select{
+      width: 100%;
+      padding: 12px 12px;
+      border: 1.8px solid #2B3B37;
+      border-radius: 12px;
+      font-size: 14px;
+      transition: var(--transition);
+      background: #0F1916;
+      color: #EAF5F1;
+    }
+    .form-group input::placeholder,
+    .form-group select::placeholder { color: #8AA39C; }
+    .form-group input:focus,
+    .form-group select:focus{
+      outline: none;
+      border-color: #2E4A42;
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+    .modal-footer{
+      display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;
+    }
 
         .modal-actions {
             display: flex;
