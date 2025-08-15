@@ -304,7 +304,14 @@ INSERT INTO Crops (crop_name, crop_type) VALUES
 INSERT INTO Harvests (farm_id, harvest_name, harvest_type, harvest_quantity, harvest_shelf_life) VALUES
 (1, 'Spring Tomato Harvest', 'Vegetable', 500.00, '7 days'),
 (2, 'Winter Wheat', 'Grain', 2000.00, '1 year'),
-(3, 'Apple Harvest 2024', 'Fruit', 800.00, '3 months');
+(3, 'Apple Harvest 2024', 'Fruit', 800.00, '3 months'),
+(1, 'Summer Tomato Harvest',        'Vegetable', 650.00, '7 days'),
+(2, 'Monsoon Corn Harvest',         'Grain',    1400.00, '6 months'),
+(3, 'Late Apple Harvest',           'Fruit',     500.00, '2 months'),
+(1, 'Winter Wheat Cycle',           'Grain',    1700.00, '1 year'),
+(2, 'Autumn Tomato Harvest',        'Vegetable', 550.00, '7 days'),
+(3, 'Riverside Wheat',              'Grain',    1800.00, '1 year'),
+(1, 'Green Valley Apple Lot',       'Fruit',     300.00, '3 months');
 
 INSERT INTO Crop_Sowing (harvest_id, crop_id, plant_date, harvest_date) VALUES
 (1, 1, '2024-03-15', '2024-06-15'),
@@ -329,7 +336,15 @@ INSERT INTO Warehouses (warehouse_name, location, capacity) VALUES
 INSERT INTO Harvest_Batches (harvest_id, warehouse_id, batch_number, quantity, status, storage_date) VALUES
 (1, 2, 'BATCH001', 250.00, 'Stored', '2024-06-16'),
 (2, 3, 'BATCH002', 1000.00, 'Stored', '2024-07-02'),
-(3, 2, 'BATCH003', 400.00, 'Stored', '2024-09-02');
+(3, 2, 'BATCH003', 400.00, 'Stored', '2024-09-02'),
+(4,  1, 'BATCH004', 300.00, 'Stored',     '2024-06-25'),
+(5,  3, 'BATCH005', 700.00, 'Pending',    '2024-08-15'),
+(6,  2, 'BATCH006', 250.00, 'Stored',     '2024-09-10'),
+(7,  3, 'BATCH007', 900.00, 'Dispatched', '2024-11-20'),
+(8,  2, 'BATCH008', 280.00, 'Stored',     '2024-10-05'),
+(9,  1, 'BATCH009', 950.00, 'Pending',    '2024-07-20'),
+(10, 2, 'BATCH010', 220.00, 'Stored',     '2024-09-18');
+
 
 INSERT INTO Owners (first_name, last_name, contact_number, address) VALUES
 ('Michael', 'Brown', '111-222-3333', '123 Factory St, Industrial Zone'),
@@ -343,6 +358,7 @@ INSERT INTO Packaged_Product_Batches (harvest_batch_id, factory_id, batch_number
 (1, 1, 'BATCH001', 'Tomato Batch A', '2024-06-20', 200.00, 1, 200.00),
 (2, 2, 'BATCH002', 'Wheat Batch B',  '2024-07-05', 800.00, 3, 800.00),
 (3, 1, 'BATCH003', 'Apple Batch C',  '2024-09-05', 350.00, 2, 350.00);
+
 
 INSERT INTO Package_Products (packaged_product_batch_id, product_name, storage_requirements, packaging_details) VALUES
 (1, 'Canned Tomatoes', 'Cool Dry Place', 'Metal Can'),
@@ -365,7 +381,13 @@ INSERT INTO Transports (driver_id, vehicle_type, vehicle_license_no, vehicle_cap
 (1, 'Truck', 'TRK-001', 5000.00, 0.00),
 (2, 'Van', 'VAN-002', 2000.00, 0.00),
 (3, 'Refrigerated Truck', 'REF-003', 3000.00, 0.00),
-(4, 'Trailer', 'TEA-004', 5000.00, 0.00);
+(4, 'Trailer', 'TEA-004', 5000.00, 0.00),
+(5,  'Truck',              'TRK-005', 5000.00, 0.00),   -- James Brown
+(6,  'Van',                'VAN-006', 2000.00, 0.00),   -- Sarah Miller
+(7,  'Trailer',            'TRL-007', 6000.00, 0.00),   -- David Wilson
+(8,  'Refrigerated Truck', 'REF-008', 3000.00, 0.00),   -- Olivia Martinez
+(9,  'Truck',              'TRK-009', 5000.00, 0.00),   -- Michael Taylor
+(10, 'Van',                'VAN-010', 2000.00, 0.00);  
 
 -- Seed data (omit shipment_id, let it auto-increment)
 INSERT INTO Shipments
@@ -464,7 +486,28 @@ VALUES
 
   -- Late, higher spoilage, unsuccessful (to exercise KPI/Chart buckets)
   ('DEF-456', '2024-09-08', '16:45:00', 'James Wilson',
-   '16:30:00', '16:45:00', 12, 'late', 'unsuccessful');
+   '16:30:00', '16:45:00', 12, 'late', 'unsuccessful'),
+
+  ('GHI-789', '2024-08-01', '11:00:00', 'Liam Carter',
+   '11:00:00', '11:00:00', 0, 'on time', 'successful'),
+
+  ('JKL-456', '2024-08-15', '15:20:00', 'Sophia Green',
+   '15:00:00', '15:20:00', 5, 'late', 'successful'),
+
+  ('MNO-321', '2024-08-28', '09:45:00', 'Noah Bennett',
+   '09:30:00', '09:45:00', 2, 'late', 'successful'),
+
+  ('PQR-654', '2024-09-12', '13:10:00', 'Isabella Foster',
+   '13:10:00', '13:10:00', 0, 'on time', 'successful'),
+
+  ('STU-987', '2024-09-25', '17:05:00', 'Mason Rivera',
+   '17:00:00', '17:05:00', 7, 'late', 'unsuccessful'),
+
+  ('VWX-159', '2024-10-03', '10:25:00', 'Olivia Hughes',
+   '10:20:00', '10:25:00', 1, 'late', 'successful'),
+
+  ('YZA-753', '2024-10-18', '08:50:00', 'Ethan Morgan',
+   '08:50:00', '08:50:00', 0, 'on time', 'successful');
 
 INSERT INTO Orders (location, order_date) VALUES
 ('Downtown Store', '2024-06-20'),
