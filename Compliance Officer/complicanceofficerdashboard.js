@@ -1,260 +1,208 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Grab key elements
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const pageTitleEl = document.getElementById('pageTitle');
-    const dashboardHome = document.getElementById('dashboardHome');
-    const featureFrame = document.getElementById('featureFrame');
+  // ComplianceHub Dashboard JavaScript
+  class ComplianceDashboard {
+    constructor() {
+        this.sidebar = document.getElementById('sidebar');
+        this.sidebarToggle = document.getElementById('sidebarToggle');
+        this.dashboardHome = document.getElementById('dashboardHome');
+        this.featureFrame = document.getElementById('featureFrame');
+        this.iframeWrapper = document.getElementById('iframeWrapper');
+        this.pageTitle = document.getElementById('pageTitle');
+        this.notificationBadge = document.getElementById('notificationBadge');
+        this.topBar = document.getElementById('topBar');
 
-    // Flags for chart initialization
-    let chartsInitialised = false;
-    let performanceChartInstance = null;
-    let riskChartInstance = null;
+        this.initializeEventListeners();
+        this.initializeCharts();
+        this.showDashboard();
+        this.updateNotificationCount(3);
 
-    /**
-     * Toggle the sidebar on small screens.
-     */
-    toggleBtn?.addEventListener('click', () => {
-        // Toggle a class on the sidebar to control its transform
-        sidebar.classList.toggle('collapsed');
-    });
-
-    /**
-     * Handle sidebar link clicks using event delegation.
-     */
-    sidebar.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (!link) return;
-
-        const target = link.dataset.target;
-        const title = link.dataset.title || 'ComplianceHub';
-
-        if (!target) return; // allow normal anchors without data-target
-        e.preventDefault();
-
-        setActiveLink(link);
-        pageTitleEl.textContent = title;
-
-        if (target === 'dashboard') {
-            showDashboard();
-        } else if (target === 'iframe') {
-            const url = link.dataset.url;
-            if (url) {
-                loadFeatureInIframe(url);
-            }
-        }
-
-        // Collapse the sidebar on small screens after selecting an item
-        if (window.innerWidth <= 992) {
-            sidebar.classList.add('collapsed');
-        }
-    });
-
-    /**
-     * Set the clicked link as active and remove active state from others.
-     *
-     * @param {HTMLElement} activeLink The link element that should become active
-     */
-    function setActiveLink(activeLink) {
-        sidebar.querySelectorAll('.sidebar-menu a').forEach((anchor) => {
-            anchor.classList.remove('active');
-        });
-        activeLink.classList.add('active');
+        // Ensure iframe height calculated initially if needed
+        this.adjustFeatureFrameHeight();
     }
 
-    /**
-     * Display the dashboard and hide the feature iframe. Initialize charts
-     * once on first visit.
-     */
-    function showDashboard() {
-        dashboardHome.classList.remove('d-none');
-        featureFrame.classList.remove('active');
-        featureFrame.removeAttribute('src');
-
-        if (!chartsInitialised) {
-            initDashboardCharts();
-            chartsInitialised = true;
-        }
-    }
-
-    /**
-     * Load a feature page into the iframe.
-     *
-     * @param {string} url The relative or absolute URL to load
-     */
-    function loadFeatureInIframe(url) {
-        // Hide dashboard and show iframe
-        dashboardHome.classList.add('d-none');
-        featureFrame.classList.add('active');
-
-        // Always set the src to force a reload
-        featureFrame.setAttribute('src', url);
-
-        // Reset height to minimum before content loads
-        featureFrame.style.height = '700px';
-
-        // Listen for iframe load to adjust height
-        featureFrame.onload = () => {
-            try {
-                const doc = featureFrame.contentDocument || featureFrame.contentWindow.document;
-                const height = Math.max(
-                    doc.body.scrollHeight,
-                    doc.documentElement.scrollHeight,
-                    doc.body.offsetHeight,
-                    doc.documentElement.offsetHeight
-                );
-                // Apply a minimum height to prevent sudden collapses
-                featureFrame.style.height = Math.max(height + 20, 700) + 'px';
-            } catch (err) {
-                // If cross-origin restrictions prevent access, fall back to a fixed height
-                console.warn('Could not auto-resize iframe:', err);
-                featureFrame.style.height = '800px';
-            }
-        };
-    }
-
-    /**
-     * Initialize charts on the dashboard.
-     */
-    function initDashboardCharts() {
-        const perfCanvas = document.getElementById('performanceChart');
-        const riskCanvas = document.getElementById('inventoryChart');
-
-        if (perfCanvas && perfCanvas.getContext) {
-            const ctx = perfCanvas.getContext('2d');
-            performanceChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [
-                        {
-                            label: 'Compliance Score (%)',
-                            data: [88, 91, 89, 93, 95, 92, 94, 96, 94, 97, 95, 94],
-                            borderColor: '#0f766e',
-                            backgroundColor: 'rgba(15, 118, 110, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#fff',
-                            pointBorderWidth: 3,
-                            pointRadius: 5,
-                            pointBorderColor: '#0f766e'
-                        },
-                        {
-                            label: 'Training Completion (%)',
-                            data: [78, 82, 85, 88, 91, 89, 93, 95, 92, 94, 96, 98],
-                            borderColor: '#0891b2',
-                            backgroundColor: 'rgba(8, 145, 178, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#fff',
-                            pointBorderWidth: 3,
-                            pointRadius: 5,
-                            pointBorderColor: '#0891b2'
-                        },
-                        {
-                            label: 'Audit Success Rate (%)',
-                            data: [92, 89, 91, 94, 90, 93, 95, 91, 96, 94, 92, 95],
-                            borderColor: '#059669',
-                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#fff',
-                            pointBorderWidth: 3,
-                            pointRadius: 5,
-                            pointBorderColor: '#059669'
-                        }
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            min: 70,
-                            max: 100,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                color: '#64748b',
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#64748b'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20,
-                                font: {
-                                    family: 'Inter',
-                                    weight: '500'
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                            titleColor: '#f8fafc',
-                            bodyColor: '#f8fafc',
-                            borderColor: '#0f766e',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            titleFont: {
-                                family: 'Inter',
-                                weight: '600'
-                            },
-                            bodyFont: {
-                                family: 'Inter',
-                                weight: '500'
-                            },
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y + '%';
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    }
-                },
+    initializeEventListeners() {
+        // Mobile sidebar toggle
+        if (this.sidebarToggle) {
+            this.sidebarToggle.addEventListener('click', () => {
+                this.sidebar.classList.toggle('collapsed');
             });
         }
 
-        if (riskCanvas && riskCanvas.getContext) {
-            const ctx = riskCanvas.getContext('2d');
-            riskChartInstance = new Chart(ctx, {
-                type: 'doughnut',
+        // Navigation links
+        const navLinks = document.querySelectorAll('.sidebar-menu a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleNavigation(link);
+            });
+        });
+
+        // Responsive handling - remove collapsed when big & recalc height
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 992) {
+                this.sidebar.classList.remove('collapsed');
+            }
+            this.adjustFeatureFrameHeight();
+        });
+
+        // Notification bell
+        const notificationBell = document.getElementById('notificationBell');
+        if (notificationBell) {
+            notificationBell.addEventListener('click', () => {
+                this.showNotification('You have 3 pending notifications', 'info');
+            });
+        }
+
+        // Recompute iframe size after iframe content loads (and handle errors)
+        this.featureFrame.addEventListener('load', () => {
+            this.featureFrame.classList.remove('loading');
+            // Small timeout helps when iframe content adjusts height after load
+            setTimeout(() => this.adjustFeatureFrameHeight(), 120);
+        });
+
+        this.featureFrame.addEventListener('error', () => {
+            this.featureFrame.classList.remove('loading');
+            this.showError('Failed to load feature content');
+        });
+    }
+
+    handleNavigation(link) {
+        // Update active states
+        document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        const target = link.getAttribute('data-target');
+        const url = link.getAttribute('data-url');
+        const title = link.getAttribute('data-title');
+
+        // Update page title
+        if (title) {
+            this.pageTitle.textContent = title;
+        }
+
+        // Navigate based on target
+        if (target === 'dashboard') {
+            this.showDashboard();
+        } else if (target === 'iframe' && url) {
+            this.showFeature(url);
+        }
+
+        // Close mobile sidebar
+        if (window.innerWidth <= 992) {
+            this.sidebar.classList.add('collapsed');
+        }
+    }
+
+    showDashboard() {
+        this.dashboardHome.style.display = 'block';
+        this.iframeWrapper.style.display = 'none';
+        this.featureFrame.style.display = 'none';
+        this.featureFrame.src = '';
+    }
+
+    showFeature(url) {
+        this.dashboardHome.style.display = 'none';
+        this.iframeWrapper.style.display = 'block';
+        this.featureFrame.style.display = 'block';
+        this.featureFrame.classList.add('loading');
+
+        // Set iframe src (will trigger load handler)
+        this.featureFrame.src = url;
+
+        // Adjust immediately to avoid visible bottom gap
+        this.adjustFeatureFrameHeight();
+    }
+
+    showError(message) {
+        const errorContent = `
+            <div class="d-flex align-items-center justify-content-center" style="height: 60vh;">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
+                    <h3 class="mb-3">Content Unavailable</h3>
+                    <p class="text-muted mb-4">${message}</p>
+                    <button class="btn btn-compliance" onclick="location.reload()">
+                        <i class="fas fa-refresh me-2"></i>Reload Page
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        this.dashboardHome.innerHTML = errorContent;
+        this.dashboardHome.style.display = 'block';
+        this.iframeWrapper.style.display = 'none';
+        this.featureFrame.style.display = 'none';
+    }
+
+    updateNotificationCount(count) {
+        if (this.notificationBadge) {
+            this.notificationBadge.style.display = count > 0 ? 'block' : 'none';
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const toastHTML = `
+            <div class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        container.insertAdjacentHTML('beforeend', toastHTML);
+        const toastElement = container.lastElementChild;
+        const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+        toast.show();
+        
+        // Auto remove after hide
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            if (toastElement && toastElement.parentNode) toastElement.parentNode.removeChild(toastElement);
+        });
+    }
+
+    /**
+     * Dynamically calculate the iframe height so it fills the viewport under the top bar.
+     */
+    adjustFeatureFrameHeight() {
+        if (!this.iframeWrapper || this.iframeWrapper.style.display === 'none') return;
+
+        const topBarRect = this.topBar ? this.topBar.getBoundingClientRect() : { bottom: 0 };
+        const available = Math.max(window.innerHeight - Math.ceil(topBarRect.bottom) - 24, 300); // min 300px
+        this.iframeWrapper.style.height = available + 'px';
+        this.featureFrame.style.height = available + 'px';
+    }
+
+    initializeCharts() {
+        // Performance Chart
+        const performanceCtx = document.getElementById('performanceChart');
+        if (performanceCtx) {
+            new Chart(performanceCtx, {
+                type: 'line',
                 data: {
-                    labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk', 'Mitigated'],
-                    datasets: [
-                        {
-                            label: 'Risk Assessment',
-                            data: [45, 28, 15, 7, 5],
-                            backgroundColor: [
-                                '#059669',
-                                '#0891b2', 
-                                '#d97706',
-                                '#dc2626',
-                                '#64748b'
-                            ],
-                            borderWidth: 0,
-                            hoverOffset: 6
-                        },
-                    ],
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Compliance Score',
+                        data: [88, 90, 87, 92, 89, 94],
+                        borderColor: '#0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Policy Updates',
+                        data: [12, 15, 8, 18, 14, 12],
+                        borderColor: '#0891b2',
+                        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
                 },
                 options: {
                     responsive: true,
@@ -262,69 +210,65 @@ document.addEventListener('DOMContentLoaded', () => {
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                font: {
-                                    size: 12,
-                                    family: 'Inter',
-                                    weight: '500'
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                            titleColor: '#f8fafc',
-                            bodyColor: '#f8fafc',
-                            borderColor: '#0f766e',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            titleFont: {
-                                family: 'Inter',
-                                weight: '600'
-                            },
-                            bodyFont: {
-                                family: 'Inter',
-                                weight: '500'
-                            },
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return label + ': ' + value + ' (' + percentage + '%)';
-                                }
-                            }
+                            labels: { usePointStyle: true, padding: 20 }
                         }
                     },
-                    cutout: '65%',
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Risk Distribution Chart
+        const riskCtx = document.getElementById('riskChart');
+        if (riskCtx) {
+            new Chart(riskCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Medium Risk', 'High Risk', 'Critical'],
+                    datasets: [{
+                        data: [45, 30, 20, 5],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f97316', '#dc2626'],
+                        borderWidth: 0
+                    }]
                 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 15 }
+                        }
+                    }
+                }
             });
         }
     }
+}
 
-    // Initialize dashboard on page load
-    showDashboard();
+// Initialize Dashboard
+document.addEventListener('DOMContentLoaded', () => {
+    const dashboard = new ComplianceDashboard();
+    window.complianceDashboard = dashboard;
+    
+    // Welcome notification
+    setTimeout(() => {
+        dashboard.showNotification('Welcome to ComplianceHub Dashboard!', 'success');
+    }, 1000);
 
-    // Add some interactivity for demo purposes
-    document.addEventListener('click', (e) => {
-        // Handle notification bell clicks
-        if (e.target.closest('.notification-bell')) {
-            e.preventDefault();
-            console.log('Notification clicked - would show notification panel');
-        }
+    // Ensure height recalculation a bit later (in case fonts or layout change)
+    setTimeout(() => dashboard.adjustFeatureFrameHeight(), 300);
+});
 
-        // Handle export button clicks
-        if (e.target.closest('.btn-compliance')) {
-            e.preventDefault();
-            console.log('Export clicked - would generate compliance report');
-        }
-    });
-
-    // Add window resize handler for responsive behavior
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 992) {
-            sidebar.classList.remove('collapsed');
-        }
-    });
+// Handle iframe messages
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'navigate') {
+        console.log('Navigation request from iframe:', event.data);
+    }
 });

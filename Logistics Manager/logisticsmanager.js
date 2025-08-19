@@ -1,159 +1,319 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Grab key elements
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const pageTitleEl = document.getElementById('pageTitle');
-    const dashboardHome = document.getElementById('dashboardHome');
-    const featureFrame = document.getElementById('featureFrame');
+// script.js
+class LogiFlowDashboard {
+    constructor() {
+        // DOM refs
+        this.sidebar = document.getElementById('sidebar');
+        this.sidebarToggle = document.getElementById('sidebarToggle');
+        this.dashboardHome = document.getElementById('dashboardHome');
+        this.featureFrame = document.getElementById('featureFrame');
+        this.pageTitle = document.getElementById('pageTitle');
+        this.notificationBadge = document.getElementById('notificationBadge');
+        this.topBar = document.querySelector('.top-bar');
 
-    /**
-     * Toggle the sidebar on small screens.
-     */
-    toggleBtn?.addEventListener('click', () => {
-        // Toggle a class on the sidebar to control its transform
-        sidebar.classList.toggle('collapsed');
-    });
+        // Initialize
+        this.initializeEventListeners();
+        this.initializeCharts();
+        this.showDashboard();
+        this.updateNotificationCount(7);
+    }
 
-    /**
-     * Handle sidebar link clicks using event delegation.
-     */
-    sidebar.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (!link) return;
-
-        const target = link.dataset.target;
-        const title = link.dataset.title || 'LogiFlow';
-
-        if (!target) return; // allow normal anchors without data-target
-        e.preventDefault();
-
-        setActiveLink(link);
-        pageTitleEl.textContent = title;
-
-        if (target === 'dashboard') {
-            showDashboard();
-        } else if (target === 'iframe') {
-            const url = link.dataset.url;
-            if (url) {
-                loadFeatureInIframe(url);
-            }
+    initializeEventListeners() {
+        // Mobile sidebar toggle
+        if (this.sidebarToggle) {
+            this.sidebarToggle.addEventListener('click', () => {
+                this.sidebar.classList.toggle('collapsed');
+            });
         }
 
-        // Collapse the sidebar on small screens after selecting an item
-        if (window.innerWidth <= 992) {
-            sidebar.classList.add('collapsed');
-        }
-    });
-
-    /**
-     * Set the clicked link as active and remove active state from others.
-     *
-     * @param {HTMLElement} activeLink The link element that should become active
-     */
-    function setActiveLink(activeLink) {
-        sidebar.querySelectorAll('.sidebar-menu a').forEach((anchor) => {
-            anchor.classList.remove('active');
+        // Navigation links
+        const navLinks = document.querySelectorAll('.sidebar-menu a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleNavigation(link);
+            });
         });
-        activeLink.classList.add('active');
-    }
 
-    /**
-     * Display the dashboard and hide the feature iframe.
-     */
-    function showDashboard() {
-        dashboardHome.classList.remove('d-none');
-        featureFrame.classList.remove('active');
-        featureFrame.removeAttribute('src');
-    }
-
-    /**
-     * Load a feature page into the iframe.
-     *
-     * @param {string} url The relative or absolute URL to load
-     */
-    function loadFeatureInIframe(url) {
-        // Hide dashboard and show iframe
-        dashboardHome.classList.add('d-none');
-        featureFrame.classList.add('active');
-
-        // Always set the src to force a reload
-        featureFrame.setAttribute('src', url);
-
-        // Reset height to minimum before content loads
-        featureFrame.style.height = '700px';
-
-        // Listen for iframe load to adjust height
-        featureFrame.onload = () => {
-            try {
-                const doc = featureFrame.contentDocument || featureFrame.contentWindow.document;
-                const height = Math.max(
-                    doc.body.scrollHeight,
-                    doc.documentElement.scrollHeight,
-                    doc.body.offsetHeight,
-                    doc.documentElement.offsetHeight
-                );
-                // Apply a minimum height to prevent sudden collapses
-                featureFrame.style.height = Math.max(height + 20, 700) + 'px';
-            } catch (err) {
-                // If cross-origin restrictions prevent access, fall back to a fixed height
-                console.warn('Could not auto-resize iframe:', err);
-                featureFrame.style.height = '800px';
+        // Responsive handling (also adjust iframe height)
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 992) {
+                this.sidebar.classList.remove('collapsed');
             }
+            this.adjustIframeHeight();
+        });
+
+        // Notification bell
+        const notificationBell = document.getElementById('notificationBell');
+        if (notificationBell) {
+            notificationBell.addEventListener('click', () => {
+                this.showNotification('You have 7 logistics alerts requiring attention', 'warning');
+            });
+        }
+
+        // Adjust iframe on scroll (in case top-bar position changes)
+        window.addEventListener('scroll', () => {
+            if (this.featureFrame.style.display === 'block') {
+                this.adjustIframeHeight();
+            }
+        });
+
+        // Ensure iframe height recomputed after navigation events from iframe (if posted)
+        window.addEventListener('message', (event) => {
+            if (event && event.data && event.data.type === 'resize-ifr') {
+                // optional: allow iframe to ask host to resize (if same trusted domain)
+                this.adjustIframeHeight();
+            }
+        });
+    }
+
+    handleNavigation(link) {
+        // Update active states
+        document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        const target = link.getAttribute('data-target');
+        const url = link.getAttribute('data-url');
+        const title = link.getAttribute('data-title');
+
+        // Update page title
+        if (title) {
+            this.pageTitle.textContent = title;
+        }
+
+        // Navigate based on target
+        if (target === 'dashboard') {
+            this.showDashboard();
+        } else if (target === 'iframe' && url) {
+            this.showFeature(url);
+        }
+
+        // Close mobile sidebar
+        if (window.innerWidth <= 992) {
+            this.sidebar.classList.add('collapsed');
+        }
+    }
+
+    showDashboard() {
+        this.dashboardHome.style.display = 'block';
+        this.featureFrame.style.display = 'none';
+        this.featureFrame.src = '';
+        // scroll dashboard top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    showFeature(url) {
+        this.dashboardHome.style.display = 'none';
+        this.featureFrame.style.display = 'block';
+        this.featureFrame.classList.add('loading');
+
+        // Set src and attempt to size correctly
+        this.featureFrame.src = url;
+
+        // Immediately adjust size for the scrolling viewport
+        this.adjustIframeHeight();
+
+        // On load, try to size to content (if same-origin), otherwise fallback to viewport fitting
+        this.featureFrame.onload = () => {
+            this.featureFrame.classList.remove('loading');
+
+            // try same-origin sizing, with fallback
+            try {
+                const doc = this.featureFrame.contentDocument || this.featureFrame.contentWindow.document;
+                if (doc) {
+                    // get content height
+                    const contentHeight = Math.max(
+                        doc.documentElement.scrollHeight,
+                        doc.body ? doc.body.scrollHeight : 0,
+                        doc.documentElement.offsetHeight,
+                        doc.body ? doc.body.offsetHeight : 0
+                    );
+                    // compute available height and pick the larger of content vs available (but cap)
+                    const available = this.computeAvailableHeight();
+                    const finalHeight = Math.max(Math.min(contentHeight, Math.max(available, 400)), 400);
+                    this.featureFrame.style.height = finalHeight + 'px';
+                }
+            } catch (err) {
+                // Cross-origin — we cannot access content. Just fit to available viewport space.
+                this.adjustIframeHeight();
+            }
+
+            // scroll top so user sees top of feature
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        };
+
+        this.featureFrame.onerror = () => {
+            this.featureFrame.classList.remove('loading');
+            this.showError(`Failed to load: ${url}`);
         };
     }
 
-    // Initialize dashboard on page load
-    showDashboard();
-
-    // Add some interactivity for demo purposes
-    document.addEventListener('click', (e) => {
-        // Handle notification bell clicks
-        if (e.target.closest('.notification-bell')) {
-            e.preventDefault();
-            console.log('Notification clicked - would show logistics alerts');
+    computeAvailableHeight() {
+        // Compute height available for iframe so it fills the visible area below top-bar
+        // Use bounding rect of topBar to know where iframe should start
+        let topOffset = 0;
+        if (this.topBar) {
+            const rect = this.topBar.getBoundingClientRect();
+            // rect.bottom is number of pixels from viewport top to bottom of topBar
+            topOffset = Math.ceil(rect.bottom);
+        } else {
+            // fallback: use 80px estimate
+            topOffset = 80;
         }
 
-        // Handle export button clicks
-        if (e.target.closest('.btn-logistics')) {
-            e.preventDefault();
-            console.log('Export clicked - would generate logistics report');
+        // subtract a small margin (24px) for spacing
+        const available = window.innerHeight - topOffset - 24;
+        // ensure reasonable minimum
+        return Math.max(available, 400);
+    }
+
+    adjustIframeHeight() {
+        if (!this.featureFrame || this.featureFrame.style.display === 'none') return;
+        const available = this.computeAvailableHeight();
+        this.featureFrame.style.height = available + 'px';
+    }
+
+    showError(message) {
+        const errorContent = `
+            <div class="d-flex align-items-center justify-content-center" style="height: 60vh;">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
+                    <h3 class="mb-3">Content Unavailable</h3>
+                    <p class="text-muted mb-4">${message}</p>
+                    <button class="btn btn-logistics" onclick="location.reload()">
+                        <i class="fas fa-refresh me-2"></i>Reload Page
+                    </button>
+                </div>
+            </div>
+        `;
+        this.dashboardHome.innerHTML = errorContent;
+        this.dashboardHome.style.display = 'block';
+        this.featureFrame.style.display = 'none';
+    }
+
+    updateNotificationCount(count) {
+        if (this.notificationBadge) {
+            this.notificationBadge.style.display = count > 0 ? 'block' : 'none';
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        // map type to bootstrap bg classes; allowed: info, success, warning, danger, primary, secondary
+        const allowed = ['info', 'success', 'warning', 'danger', 'primary', 'secondary'];
+        const t = allowed.includes(type) ? type : 'info';
+
+        const toastHTML = `
+            <div class="toast align-items-center text-bg-${t} border-0" role="alert" aria-live="polite" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
         }
 
-        // Handle card clicks for more details
-        if (e.target.closest('.stat-card')) {
-            const card = e.target.closest('.stat-card');
-            const title = card.querySelector('h6').textContent;
-            console.log(`Card clicked: ${title} - would show detailed view`);
-        }
-    });
+        container.insertAdjacentHTML('beforeend', toastHTML);
+        const toastElement = container.lastElementChild;
+        const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
+        toast.show();
 
-    // Add window resize handler for responsive behavior
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 992) {
-            sidebar.classList.remove('collapsed');
-        }
-    });
-
-    // Add hover effects to cards
-    const cards = document.querySelectorAll('.stat-card');
-    cards.forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            card.style.cursor = 'pointer';
+        // Remove DOM node on hide to keep DOM clean
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
         });
-        
-        card.addEventListener('mouseleave', () => {
-            card.style.cursor = 'default';
-        });
-    });
+    }
 
-    // Simulate real-time updates (for demo)
-    setInterval(() => {
-        const activeShipments = document.querySelector('.stat-card.primary .value');
-        if (activeShipments) {
-            const currentValue = parseInt(activeShipments.textContent);
-            const variation = Math.floor(Math.random() * 5) - 2; // Random variation between -2 and 2
-            const newValue = Math.max(0, currentValue + variation);
-            activeShipments.textContent = newValue;
+    initializeCharts() {
+        // Fleet Performance Chart
+        const performanceCtx = document.getElementById('performanceChart');
+        if (performanceCtx) {
+            new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Deliveries Completed',
+                        data: [45, 52, 48, 61, 55, 42, 38],
+                        borderColor: '#ea580c',
+                        backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Fleet Utilization (%)',
+                        data: [78, 85, 82, 89, 87, 75, 71],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 20 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
         }
-    }, 30000); // Update every 30 seconds
+
+        // Delivery Status Chart
+        const deliveryCtx = document.getElementById('deliveryChart');
+        if (deliveryCtx) {
+            new Chart(deliveryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Delivered', 'In Transit', 'Pending', 'Delayed'],
+                    datasets: [{
+                        data: [65, 20, 10, 5],
+                        backgroundColor: [
+                            '#16a34a',
+                            '#ea580c',
+                            '#ca8a04',
+                            '#dc2626'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, padding: 15 }
+                        }
+                    }
+                }
+            });
+        }
+    }
+}
+
+// Initialize Dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const dashboard = new LogiFlowDashboard();
+    window.logiFlowDashboard = dashboard;
+
+    // Welcome notification
+    setTimeout(() => {
+        dashboard.showNotification('Welcome to LogiFlow Logistics Dashboard!', 'success');
+    }, 1000);
 });

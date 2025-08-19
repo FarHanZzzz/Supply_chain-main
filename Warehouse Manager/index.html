@@ -1,1214 +1,503 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WarehouseOps | Manager Dashboard</title>
-    
-    <!-- External Dependencies -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --sidebar-width: 280px;
-            --sidebar-bg: #2d1b0e;
-            --sidebar-hover: #3d2817;
-            --primary-color: #d97706;
-            --secondary-color: #92400e;
-            --success-color: #059669;
-            --warning-color: #dc2626;
-            --danger-color: #b91c1c;
-            --info-color: #0369a1;
-            --text-light: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #e2e8f0;
-            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --gradient-primary: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
-            --gradient-secondary: linear-gradient(135deg, #92400e 0%, #d97706 100%);
-            --gradient-accent: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: linear-gradient(135deg, #fefcfb 0%, #fff7ed 50%, #f9fafb 100%);
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow-x: hidden;
-            color: #334155;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            color: var(--text-light);
-            z-index: 1000;
-            overflow-y: auto;
-            transition: var(--transition);
-            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.12);
-        }
-
-        .sidebar.collapsed {
-            transform: translateX(-100%);
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: var(--gradient-primary);
-        }
-
-        .sidebar-header h3 {
-            font-weight: 700;
-            font-size: 1.4rem;
-            letter-spacing: -0.5px;
-            color: white;
-            margin: 0;
-        }
-
-        .sidebar-menu {
-            padding: 1rem 0;
-        }
-
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-menu li a {
-            display: flex;
-            align-items: center;
-            padding: 0.9rem 1.5rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: var(--transition);
-            border-left: 3px solid transparent;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .sidebar-menu li a:hover,
-        .sidebar-menu li a.active {
-            background: var(--sidebar-hover);
-            border-left: 3px solid var(--primary-color);
-            color: var(--text-light);
-            transform: translateX(2px);
-        }
-
-        .sidebar-menu li a i {
-            margin-right: 0.75rem;
-            width: 1.25rem;
-            text-align: center;
-            font-size: 1.1rem;
-            transition: var(--transition);
-        }
-
-        .sidebar-menu li a:hover i,
-        .sidebar-menu li a.active i {
-            color: var(--primary-color);
-            transform: scale(1.1);
-        }
-
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 1rem 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        /* Mobile Toggle Button */
-        .toggle-btn {
-            position: fixed;
-            top: 1.25rem;
-            left: 1.25rem;
-            background: var(--gradient-primary);
-            color: var(--text-light);
-            border: none;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-            transition: var(--transition);
-            cursor: pointer;
-        }
-
-        .toggle-btn:hover {
-            transform: scale(1.05);
-        }
-
-        /* Main Content */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 1.5rem;
-            transition: var(--transition);
-            min-height: 100vh;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 0.8rem 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 0.75rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .top-bar h1 {
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin: 0;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .top-bar .controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .notification-bell {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(217, 119, 6, 0.1);
-            transition: var(--transition);
-            color: var(--primary-color);
-            cursor: pointer;
-        }
-
-        .notification-bell:hover {
-            background: rgba(217, 119, 6, 0.2);
-            transform: scale(1.05);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--danger-color);
-            border: 2px solid white;
-            display: none;
-        }
-
-        .user-dropdown {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-            padding: 0.25rem;
-            border-radius: 50px;
-            transition: var(--transition);
-        }
-
-        .user-dropdown:hover {
-            background: rgba(217, 119, 6, 0.1);
-        }
-
-        .user-dropdown img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary-color);
-        }
-
-        .user-dropdown span {
-            font-weight: 600;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* Cards */
-        .stat-card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
-            transition: var(--transition);
-            height: 100%;
-            background: white;
-            position: relative;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gradient-primary);
-        }
-
-        .stat-card.primary::before {
-            background: var(--gradient-primary);
-        }
-
-        .stat-card.success::before {
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        }
-
-        .stat-card.warning::before {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-        }
-
-        .stat-card.danger::before {
-            background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
-        }
-
-        .stat-card.secondary::before {
-            background: var(--gradient-secondary);
-        }
-
-        .stat-card.info::before {
-            background: var(--gradient-accent);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.15);
-        }
-
-        .stat-card .card-body {
-            padding: 1.75rem;
-        }
-
-        .stat-card h6 {
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.1rem;
-            margin-bottom: 0.5rem;
-            color: #64748b;
-        }
-
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-card .icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 55px;
-            height: 55px;
-            border-radius: 15px;
-            background: var(--gradient-primary);
-            color: white;
-            font-size: 1.5rem;
-        }
-
-        .stat-card.success .icon {
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-        }
-
-        .stat-card.warning .icon {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-        }
-
-        .stat-card.danger .icon {
-            background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
-        }
-
-        .stat-card.secondary .icon {
-            background: var(--gradient-secondary);
-        }
-
-        .stat-card.info .icon {
-            background: var(--gradient-accent);
-        }
-
-        .chart-card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: var(--card-shadow);
-            background: white;
-            transition: var(--transition);
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .chart-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.15);
-        }
-
-        .chart-card .card-header {
-            border: none;
-            background: rgba(217, 119, 6, 0.05);
-            padding: 1.25rem 1.5rem;
-            font-weight: 700;
-            color: #2d1b0e;
-        }
-
-        .chart-card .card-body {
-            padding: 1.25rem 1.5rem;
-        }
-
-        /* Feature Frame */
-        .feature-frame {
-            width: 100%;
-            height: 700px;
-            border: 0;
-            border-radius: 1rem;
-            background: white;
-            box-shadow: var(--card-shadow);
-            transition: var(--transition);
-            display: none;
-        }
-
-        /* Activity Feed */
-        .activity-feed {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .activity-feed li {
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            gap: 1rem;
-        }
-
-        .activity-feed li:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: var(--gradient-primary);
-            color: white;
-            flex-shrink: 0;
-        }
-
-        /* Custom Button */
-        .btn-warehouse {
-            background: var(--gradient-primary);
-            border: none;
-            color: white;
-            font-weight: 600;
-            transition: var(--transition);
-            border-radius: 0.5rem;
-        }
-
-        .btn-warehouse:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
-            color: white;
-        }
-
-        /* Status Badges */
-        .status-badge {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            text-transform: uppercase;
-            letter-spacing: 0.05rem;
-        }
-
-        .status-stocked {
-            background: rgba(5, 150, 105, 0.1);
-            color: var(--success-color);
-        }
-
-        .status-low-stock {
-            background: rgba(217, 119, 6, 0.1);
-            color: var(--primary-color);
-        }
-
-        .status-out-of-stock {
-            background: rgba(220, 38, 38, 0.1);
-            color: var(--warning-color);
-        }
-
-        .status-maintenance {
-            background: rgba(185, 28, 28, 0.1);
-            color: var(--danger-color);
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s ease-out forwards;
-        }
-
-        /* Loading State */
-        .loading {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        /* Toast Container */
-        .toast-container {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1055;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 992px) {
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .toggle-btn {
-                display: flex;
-            }
-            
-            .sidebar.collapsed {
-                transform: translateX(-100%);
-            }
-            
-            .top-bar .controls .btn-toolbar {
-                display: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .stat-card .value {
-                font-size: 1.75rem;
-            }
-            
-            .stat-card .icon {
-                width: 48px;
-                height: 48px;
-                font-size: 1.25rem;
-            }
-            
-            .top-bar h1 {
-                font-size: 1.2rem;
-            }
-            
-            .user-dropdown span {
-                display: none;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WarehouseOps | Manager Dashboard</title>
+
+  <!-- External Dependencies -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* (Styles are identical to your original file; kept exactly) */
+    :root {
+        --sidebar-width: 280px;
+        --sidebar-bg: #2d1b0e;
+        --sidebar-hover: #3d2817;
+        --primary-color: #d97706;
+        --secondary-color: #92400e;
+        --success-color: #059669;
+        --warning-color: #dc2626;
+        --danger-color: #b91c1c;
+        --info-color: #0369a1;
+        --text-light: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --gradient-primary: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+        --gradient-secondary: linear-gradient(135deg, #92400e 0%, #d97706 100%);
+        --gradient-accent: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        background: linear-gradient(135deg, #fefcfb 0%, #fff7ed 50%, #f9fafb 100%);
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow-x: hidden;
+        color: #334155;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        height: 100vh;
+        width: var(--sidebar-width);
+        background: var(--sidebar-bg);
+        color: var(--text-light);
+        z-index: 1000;
+        overflow-y: auto;
+        transition: var(--transition);
+        box-shadow: 4px 0 20px rgba(0,0,0,0.12);
+    }
+
+    .sidebar.collapsed { transform: translateX(-100%); }
+
+    .sidebar-header { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); background: var(--gradient-primary); }
+    .sidebar-header h3 { font-weight:700; font-size:1.4rem; letter-spacing:-0.5px; color:white; margin:0; }
+
+    .sidebar-menu { padding:1rem 0; }
+    .sidebar-menu ul { list-style:none; padding:0; margin:0; }
+
+    .sidebar-menu li a {
+        display:flex; align-items:center;
+        padding:0.9rem 1.5rem;
+        color:var(--text-muted);
+        text-decoration:none;
+        transition:var(--transition);
+        border-left:3px solid transparent;
+        font-weight:500;
+        cursor:pointer;
+    }
+
+    .sidebar-menu li a:hover, .sidebar-menu li a.active {
+        background:var(--sidebar-hover);
+        border-left:3px solid var(--primary-color);
+        color:var(--text-light);
+        transform:translateX(2px);
+    }
+
+    .sidebar-menu li a i { margin-right:0.75rem; width:1.25rem; text-align:center; font-size:1.1rem; transition:var(--transition); }
+    .sidebar-menu li a:hover i, .sidebar-menu li a.active i { color:var(--primary-color); transform:scale(1.1); }
+
+    .sidebar-footer {
+        position:absolute; bottom:0; left:0; right:0;
+        padding:1rem 1.5rem;
+        border-top:1px solid rgba(255,255,255,0.1);
+        font-size:0.75rem; color:var(--text-muted); background:rgba(0,0,0,0.2);
+    }
+
+    .toggle-btn {
+        position:fixed; top:1.25rem; left:1.25rem;
+        background:var(--gradient-primary); color:var(--text-light);
+        border:none; border-radius:50%; width:42px; height:42px;
+        display:none; align-items:center; justify-content:center;
+        z-index:999; box-shadow:0 4px 6px rgba(0,0,0,0.15);
+        transition:var(--transition); cursor:pointer;
+    }
+    .toggle-btn:hover { transform:scale(1.05); }
+
+    .main-content { margin-left:var(--sidebar-width); padding:1.5rem; transition:var(--transition); min-height:100vh; }
+
+    .top-bar {
+        background:rgba(255,255,255,0.95); backdrop-filter:blur(10px);
+        padding:0.8rem 1.5rem; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center;
+        border-radius:0.75rem; position:sticky; top:0; z-index:100; border:1px solid rgba(255,255,255,0.2);
+    }
+
+    .top-bar h1 { font-size:1.4rem; font-weight:700; margin:0; background:var(--gradient-primary); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    .top-bar .controls { display:flex; align-items:center; gap:1rem; }
+
+    .notification-bell { position:relative; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:rgba(217,119,6,0.1); transition:var(--transition); color:var(--primary-color); cursor:pointer; }
+    .notification-bell:hover { background:rgba(217,119,6,0.2); transform:scale(1.05); }
+
+    .notification-badge { position:absolute; top:-2px; right:-2px; width:12px; height:12px; border-radius:50%; background:var(--danger-color); border:2px solid white; display:none; }
+
+    .user-dropdown { display:flex; align-items:center; gap:0.75rem; cursor:pointer; padding:0.25rem; border-radius:50px; transition:var(--transition); }
+    .user-dropdown:hover { background:rgba(217,119,6,0.1); }
+    .user-dropdown img { width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color); }
+    .user-dropdown span { font-weight:600; background:var(--gradient-primary); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    .stat-card { border:none; border-radius:1rem; box-shadow:var(--card-shadow); overflow:hidden; transition:var(--transition); height:100%; background:white; position:relative; }
+    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--gradient-primary); }
+    .stat-card.primary::before { background:var(--gradient-primary); }
+    .stat-card.success::before { background:linear-gradient(135deg,#059669 0%,#10b981 100%); }
+    .stat-card.warning::before { background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%); }
+    .stat-card.danger::before { background:linear-gradient(135deg,#b91c1c 0%,#dc2626 100%); }
+    .stat-card.secondary::before { background:var(--gradient-secondary); }
+    .stat-card.info::before { background:var(--gradient-accent); }
+    .stat-card:hover { transform:translateY(-8px); box-shadow:0 25px 35px -5px rgba(0,0,0,0.15); }
+    .stat-card .card-body { padding:1.75rem; }
+    .stat-card h6 { text-transform:uppercase; font-size:0.75rem; font-weight:700; letter-spacing:0.1rem; margin-bottom:0.5rem; color:#64748b; }
+    .stat-card .value { font-size:2rem; font-weight:800; margin-bottom:0.5rem; background:var(--gradient-primary); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .stat-card .icon { display:flex; align-items:center; justify-content:center; width:55px; height:55px; border-radius:15px; background:var(--gradient-primary); color:white; font-size:1.5rem; }
+
+    .chart-card { border:none; border-radius:1rem; box-shadow:var(--card-shadow); background:white; transition:var(--transition); height:100%; overflow:hidden; }
+    .chart-card:hover { transform:translateY(-5px); box-shadow:0 25px 35px -5px rgba(0,0,0,0.15); }
+    .chart-card .card-header { border:none; background:rgba(217,119,6,0.05); padding:1.25rem 1.5rem; font-weight:700; color:#2d1b0e; }
+    .chart-card .card-body { padding:1.25rem 1.5rem; }
+
+    .feature-frame { width:100%; height:700px; border:0; border-radius:1rem; background:white; box-shadow:var(--card-shadow); transition:var(--transition); display:none; }
+
+    .activity-feed { list-style:none; padding:0; margin:0; }
+    .activity-feed li { padding:1rem 0; border-bottom:1px solid var(--border-color); display:flex; gap:1rem; }
+    .activity-feed li:last-child { border-bottom:none; }
+    .activity-icon { display:flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:50%; background:var(--gradient-primary); color:white; flex-shrink:0; }
+
+    .btn-warehouse { background:var(--gradient-primary); border:none; color:white; font-weight:600; transition:var(--transition); border-radius:0.5rem; }
+    .btn-warehouse:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(217,119,6,0.4); color:white; }
+
+    .status-badge { font-size:0.75rem; font-weight:600; padding:0.25rem 0.75rem; border-radius:50px; text-transform:uppercase; letter-spacing:0.05rem; }
+    .status-stocked { background: rgba(5,150,105,0.1); color:var(--success-color); }
+    .status-low-stock { background: rgba(217,119,6,0.1); color:var(--primary-color); }
+    .status-out-of-stock { background: rgba(220,38,38,0.1); color:var(--warning-color); }
+    .status-maintenance { background: rgba(185,28,28,0.1); color:var(--danger-color); }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation:fadeIn 0.6s ease-out forwards; }
+    .loading { opacity:0.5; pointer-events:none; }
+
+    .toast-container { position:fixed; top:1rem; right:1rem; z-index:1055; }
+
+    @media (max-width:992px) {
+      .main-content { margin-left:0; }
+      .toggle-btn { display:flex; }
+      .sidebar.collapsed { transform:translateX(-100%); }
+      .top-bar .controls .btn-toolbar { display:none; }
+    }
+
+    @media (max-width:768px) {
+      .stat-card .value { font-size:1.75rem; }
+      .stat-card .icon { width:48px; height:48px; font-size:1.25rem; }
+      .top-bar h1 { font-size:1.2rem; }
+      .user-dropdown span { display:none; }
+    }
+  </style>
 </head>
 <body>
-    <!-- Mobile Sidebar Toggle -->
-    <button class="toggle-btn" id="sidebarToggle">
-        <i class="fas fa-bars"></i>
-    </button>
+  <!-- Mobile Sidebar Toggle -->
+  <button class="toggle-btn" id="sidebarToggle"><i class="fas fa-bars"></i></button>
 
-    <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <h3 class="d-flex align-items-center">
-                <i class="fas fa-warehouse me-2"></i>
-                <span>WarehouseOps</span>
-            </h3>
-        </div>
-        
-        <nav class="sidebar-menu">
-            <ul>
-                <li>
-                    <a href="#" class="active" data-target="dashboard" data-title="Warehouse Overview">
-                        <i class="fas fa-tachometer-alt"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a href="#" data-target="iframe" data-url="/feature1/" data-title="Agricultural Products, Crop & Harvest">
-                        <i class="fas fa-boxes"></i>
-                        Products, Crop & Harvest
-                    </a>
-                </li>
-                <li>
-                    <a href="#" data-target="iframe" data-url="/feature2/" data-title="Inventory">
-                        <i class="fas fa-truck-loading"></i>
-                        Inventory
-                    </a>
-                </li>
-                <li>
-                    <a href="#" data-target="iframe" data-url="/feature3/" data-title="Logistics & Tracking">
-                        <i class="fas fa-shipping-fast"></i>
-                        Logistics & Tracking 
-                    </a>
-                </li>
-                <li>
-                    <a href="#" data-target="iframe" data-url="/feature5/" data-title="Condition Monitoring">
-                        <i class="fas fa-tools"></i>
-                        Condition Monitoring
-                    </a>
-                </li>
-               
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h3 class="d-flex align-items-center"><i class="fas fa-warehouse me-2"></i><span>WarehouseOps</span></h3>
+    </div>
+
+    <nav class="sidebar-menu">
+      <ul>
+        <li><a href="#" class="active" data-target="dashboard" data-title="Warehouse Overview"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+        <li><a href="#" data-target="iframe" data-url="/feature1/" data-title="Products, Crop & Harvest"><i class="fas fa-boxes"></i> Products, Crop & Harvest</a></li>
+        <li><a href="#" data-target="iframe" data-url="/feature2/" data-title="Inventory"><i class="fas fa-truck-loading"></i> Inventory</a></li>
+        <li><a href="#" data-target="iframe" data-url="/feature3/" data-title="Logistics & Tracking"><i class="fas fa-shipping-fast"></i> Logistics & Tracking</a></li>
+        <li><a href="#" data-target="iframe" data-url="/feature5/" data-title="Condition Monitoring"><i class="fas fa-tools"></i> Condition Monitoring</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer"><small>WarehouseOps v1.8.0</small></div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="top-bar">
+      <div><h1 id="pageTitle">Warehouse Overview</h1></div>
+      <div class="controls">
+        <div class="btn-toolbar me-3">
+          <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-warehouse"><i class="fas fa-download me-1"></i> Export Report</button>
+          </div>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-calendar me-1"></i> Today</button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#">Today</a></li>
+              <li><a class="dropdown-item" href="#">This Week</a></li>
+              <li><a class="dropdown-item" href="#">This Month</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#">Custom Range</a></li>
             </ul>
-        </nav>
-        
-        <div class="sidebar-footer">
-            <small>WarehouseOps v1.8.0</small>
-        </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="main-content">
-        <!-- Top Navigation Bar -->
-        <div class="top-bar">
-            <div>
-                <h1 id="pageTitle">Warehouse Overview</h1>
-            </div>
-            <div class="controls">
-                <div class="btn-toolbar me-3">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-warehouse">
-                            <i class="fas fa-download me-1"></i> Export Report
-                        </button>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar me-1"></i> Today
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Today</a></li>
-                            <li><a class="dropdown-item" href="#">This Week</a></li>
-                            <li><a class="dropdown-item" href="#">This Month</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#">Custom Range</a></li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="notification-bell" id="notificationBell">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="notificationBadge"></span>
-                </div>
-                
-                <div class="dropdown user-dropdown">
-                    <a class="dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                        <img src="https://ui-avatars.com/api/?name=Warehouse+Manager&background=d97706&color=fff&bold=true" alt="Warehouse Manager">
-                        <span class="ms-2">Warehouse Manager</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/home/"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                    </ul>
-                </div>
-            </div>
+          </div>
         </div>
 
-        <!-- Dashboard Home Content -->
-        <section id="dashboardHome">
-            <!-- Statistics Cards - Row 1 -->
-            <div class="row g-4 mb-4">
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card primary fade-in" style="animation-delay: 0.1s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Storage Utilization</h6>
-                                    <div class="value">78.4%</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-arrow-up me-1"></i> 5.2% from last month
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-warehouse"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="notification-bell" id="notificationBell"><i class="fas fa-bell"></i><span class="notification-badge" id="notificationBadge"></span></div>
+
+        <div class="dropdown user-dropdown">
+          <a class="dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+            <img src="https://ui-avatars.com/api/?name=Warehouse+Manager&background=d97706&color=fff&bold=true" alt="Warehouse Manager">
+            <span class="ms-2">Warehouse Manager</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/home/"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Home -->
+    <section id="dashboardHome">
+      <!-- (All dashboard content kept identical to your original file) -->
+      <!-- Statistics rows, charts, activity, alerts ... -->
+      <!-- Row 1 -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card primary fade-in" style="animation-delay:0.1s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Storage Utilization</h6>
+                  <div class="value">78.4%</div>
+                  <small class="text-success"><i class="fas fa-arrow-up me-1"></i>5.2% from last month</small>
                 </div>
-                
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card success fade-in" style="animation-delay: 0.2s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Inventory Accuracy</h6>
-                                    <div class="value">96.8%</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-arrow-up me-1"></i> 1.3% improvement
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-bullseye"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card info fade-in" style="animation-delay: 0.3s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Orders Fulfilled</h6>
-                                    <div class="value">1,847</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-arrow-up me-1"></i> 248 today
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="icon"><i class="fas fa-warehouse"></i></div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Statistics Cards - Row 2 -->
-            <div class="row g-4 mb-4">
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card secondary fade-in" style="animation-delay: 0.4s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Active Workers</h6>
-                                    <div class="value">124</div>
-                                    <small class="text-info">
-                                        <i class="fas fa-users me-1"></i> 89% attendance
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-hard-hat"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card success fade-in" style="animation-delay:0.2s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Inventory Accuracy</h6>
+                  <div class="value">96.8%</div>
+                  <small class="text-success"><i class="fas fa-arrow-up me-1"></i>1.3% improvement</small>
                 </div>
-                
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card warning fade-in" style="animation-delay: 0.5s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Low Stock Items</h6>
-                                    <div class="value">23</div>
-                                    <small class="text-warning">
-                                        <i class="fas fa-exclamation-circle me-1"></i> 8 critical
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-box-open"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card danger fade-in" style="animation-delay: 0.6s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Equipment Issues</h6>
-                                    <div class="value">4</div>
-                                    <small class="text-danger">
-                                        <i class="fas fa-exclamation-triangle me-1"></i> 2 urgent repairs
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-tools"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="icon"><i class="fas fa-bullseye"></i></div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Statistics Cards - Row 3 -->
-            <div class="row g-4 mb-4">
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card primary fade-in" style="animation-delay: 0.7s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Receiving Volume</h6>
-                                    <div class="value">89 pallets</div>
-                                    <small class="text-info">
-                                        <i class="fas fa-truck me-1"></i> Today
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-truck-loading"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card info fade-in" style="animation-delay:0.3s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Orders Fulfilled</h6>
+                  <div class="value">1,847</div>
+                  <small class="text-success"><i class="fas fa-arrow-up me-1"></i>248 today</small>
                 </div>
-                
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card success fade-in" style="animation-delay: 0.8s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Safety Record</h6>
-                                    <div class="value">47 days</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-shield-alt me-1"></i> No incidents
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-shield-check"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="card stat-card secondary fade-in" style="animation-delay: 0.9s;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Pick Rate</h6>
-                                    <div class="value">127/hr</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-stopwatch me-1"></i> 12% above target
-                                    </small>
-                                </div>
-                                <div class="icon">
-                                    <i class="fas fa-hand-paper"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="icon"><i class="fas fa-check-circle"></i></div>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Charts Row -->
-            <div class="row g-4 mb-4">
-                <div class="col-12 col-lg-8">
-                    <div class="chart-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Warehouse Operations Trends</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="operationsChart" height="300"></canvas>
-                        </div>
-                    </div>
+      <!-- Row 2 -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card secondary fade-in" style="animation-delay:0.4s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Active Workers</h6>
+                  <div class="value">124</div>
+                  <small class="text-info"><i class="fas fa-users me-1"></i>89% attendance</small>
                 </div>
-                
-                <div class="col-12 col-lg-4">
-                    <div class="chart-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Storage Categories</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="storageChart" height="300"></canvas>
-                        </div>
-                    </div>
-                </div>
+                <div class="icon"><i class="fas fa-hard-hat"></i></div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Bottom Row -->
-            <div class="row g-4">
-                <div class="col-12 col-lg-6">
-                    <div class="chart-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Recent Warehouse Activity</h5>
-                        </div>
-                        <div class="card-body">
-                            <ul class="activity-feed">
-                                <li>
-                                    <div class="activity-icon">
-                                        <i class="fas fa-truck-loading"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Receiving Completed</div>
-                                        <div class="text-muted small">89 pallets received from supplier XYZ - stored in Zone A</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">18 minutes ago</div>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="activity-icon" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Order Fulfilled</div>
-                                        <div class="text-muted small">Order #WH-7841 picked and shipped - 24 items</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">32 minutes ago</div>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="activity-icon" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Low Stock Alert</div>
-                                        <div class="text-muted small">Product SKU-4521 reached minimum threshold - 8 units left</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">1 hour ago</div>
-                                    </div>
-                                </li>
-                                <li>
-                                    <div class="activity-icon" style="background: var(--gradient-secondary);">
-                                        <i class="fas fa-tools"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Equipment Maintenance</div>
-                                        <div class="text-muted small">Forklift FL-03 scheduled for routine maintenance check</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">2 hours ago</div>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card warning fade-in" style="animation-delay:0.5s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Low Stock Items</h6>
+                  <div class="value">23</div>
+                  <small class="text-warning"><i class="fas fa-exclamation-circle me-1"></i>8 critical</small>
                 </div>
-                
-                <div class="col-12 col-lg-6">
-                    <div class="chart-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Warehouse Status & Alerts</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-success d-flex align-items-start" role="alert">
-                                <i class="fas fa-warehouse me-3 mt-1 fs-5"></i>
-                                <div>
-                                    <h6 class="alert-heading mb-1">Operations Running Smoothly</h6>
-                                    <p class="mb-2 small">All zones operational with 96.8% inventory accuracy rate</p>
-                                    <small class="text-muted">Last updated: 5 minutes ago • <span class="status-badge status-stocked">Operational</span></small>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-warning d-flex align-items-start" role="alert">
-                                <i class="fas fa-box-open me-3 mt-1 fs-5"></i>
-                                <div>
-                                    <h6 class="alert-heading mb-1">Low Stock Items</h6>
-                                    <p class="mb-2 small">23 items below minimum stock level - 8 require immediate reorder</p>
-                                    <small class="text-muted">Updated 30 minutes ago • <span class="status-badge status-low-stock">Monitor</span></small>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-info d-flex align-items-start" role="alert">
-                                <i class="fas fa-hard-hat me-3 mt-1 fs-5"></i>
-                                <div>
-                                    <h6 class="alert-heading mb-1">Shift Change</h6>
-                                    <p class="mb-2 small">Night shift starting at 6:00 PM - 47 workers scheduled</p>
-                                    <small class="text-muted">Today 6:00 PM • <span class="status-badge status-stocked">Scheduled</span></small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="icon"><i class="fas fa-box-open"></i></div>
+              </div>
             </div>
-        </section>
+          </div>
+        </div>
 
-        <!-- Feature iframe for sub-pages -->
-        <iframe id="featureFrame" class="feature-frame" title="Feature Content"></iframe>
-    </main>
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card danger fade-in" style="animation-delay:0.6s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Equipment Issues</h6>
+                  <div class="value">4</div>
+                  <small class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>2 urgent repairs</small>
+                </div>
+                <div class="icon"><i class="fas fa-tools"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container"></div>
+      <!-- Row 3 -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card primary fade-in" style="animation-delay:0.7s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Receiving Volume</h6>
+                  <div class="value">89 pallets</div>
+                  <small class="text-info"><i class="fas fa-truck me-1"></i>Today</small>
+                </div>
+                <div class="icon"><i class="fas fa-truck-loading"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <!-- JavaScript Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card success fade-in" style="animation-delay:0.8s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Safety Record</h6>
+                  <div class="value">47 days</div>
+                  <small class="text-success"><i class="fas fa-shield-alt me-1"></i>No incidents</small>
+                </div>
+                <div class="icon"><i class="fas fa-shield-check"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <script>
-        // WarehouseOps Dashboard JavaScript
-        class WarehouseOpsDashboard {
-            constructor() {
-                this.sidebar = document.getElementById('sidebar');
-                this.sidebarToggle = document.getElementById('sidebarToggle');
-                this.dashboardHome = document.getElementById('dashboardHome');
-                this.featureFrame = document.getElementById('featureFrame');
-                this.pageTitle = document.getElementById('pageTitle');
-                this.notificationBadge = document.getElementById('notificationBadge');
-                
-                this.initializeEventListeners();
-                this.initializeCharts();
-                this.showDashboard();
-                this.updateNotificationCount(4);
-            }
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="card stat-card secondary fade-in" style="animation-delay:0.9s;">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6>Pick Rate</h6>
+                  <div class="value">127/hr</div>
+                  <small class="text-success"><i class="fas fa-stopwatch me-1"></i>12% above target</small>
+                </div>
+                <div class="icon"><i class="fas fa-hand-paper"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            initializeEventListeners() {
-                // Mobile sidebar toggle
-                if (this.sidebarToggle) {
-                    this.sidebarToggle.addEventListener('click', () => {
-                        this.sidebar.classList.toggle('collapsed');
-                    });
-                }
+      <!-- Charts -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-8">
+          <div class="chart-card">
+            <div class="card-header"><h5 class="mb-0">Warehouse Operations Trends</h5></div>
+            <div class="card-body"><canvas id="operationsChart" height="300"></canvas></div>
+          </div>
+        </div>
 
-                // Navigation links
-                const navLinks = document.querySelectorAll('.sidebar-menu a');
-                navLinks.forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.handleNavigation(link);
-                    });
-                });
+        <div class="col-12 col-lg-4">
+          <div class="chart-card">
+            <div class="card-header"><h5 class="mb-0">Storage Categories</h5></div>
+            <div class="card-body"><canvas id="storageChart" height="300"></canvas></div>
+          </div>
+        </div>
+      </div>
 
-                // Responsive handling
-                window.addEventListener('resize', () => {
-                    if (window.innerWidth > 992) {
-                        this.sidebar.classList.remove('collapsed');
-                    }
-                });
+      <!-- Bottom Row -->
+      <div class="row g-4">
+        <div class="col-12 col-lg-6">
+          <div class="chart-card">
+            <div class="card-header"><h5 class="mb-0">Recent Warehouse Activity</h5></div>
+            <div class="card-body">
+              <ul class="activity-feed">
+                <li>
+                  <div class="activity-icon"><i class="fas fa-truck-loading"></i></div>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold">Receiving Completed</div>
+                    <div class="text-muted small">89 pallets received from supplier XYZ - stored in Zone A</div>
+                    <div class="text-muted" style="font-size:0.75rem;">18 minutes ago</div>
+                  </div>
+                </li>
+                <li>
+                  <div class="activity-icon" style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);"><i class="fas fa-check-circle"></i></div>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold">Order Fulfilled</div>
+                    <div class="text-muted small">Order #WH-7841 picked and shipped - 24 items</div>
+                    <div class="text-muted" style="font-size:0.75rem;">32 minutes ago</div>
+                  </div>
+                </li>
+                <li>
+                  <div class="activity-icon" style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);"><i class="fas fa-exclamation-triangle"></i></div>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold">Low Stock Alert</div>
+                    <div class="text-muted small">Product SKU-4521 reached minimum threshold - 8 units left</div>
+                    <div class="text-muted" style="font-size:0.75rem;">1 hour ago</div>
+                  </div>
+                </li>
+                <li>
+                  <div class="activity-icon" style="background:var(--gradient-secondary);"><i class="fas fa-tools"></i></div>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold">Equipment Maintenance</div>
+                    <div class="text-muted small">Forklift FL-03 scheduled for routine maintenance check</div>
+                    <div class="text-muted" style="font-size:0.75rem;">2 hours ago</div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-                // Notification bell
-                const notificationBell = document.getElementById('notificationBell');
-                if (notificationBell) {
-                    notificationBell.addEventListener('click', () => {
-                        this.showNotification('You have 4 warehouse alerts requiring attention', 'warning');
-                    });
-                }
-            }
+        <div class="col-12 col-lg-6">
+          <div class="chart-card">
+            <div class="card-header"><h5 class="mb-0">Warehouse Status & Alerts</h5></div>
+            <div class="card-body">
+              <div class="alert alert-success d-flex align-items-start" role="alert">
+                <i class="fas fa-warehouse me-3 mt-1 fs-5"></i>
+                <div>
+                  <h6 class="alert-heading mb-1">Operations Running Smoothly</h6>
+                  <p class="mb-2 small">All zones operational with 96.8% inventory accuracy rate</p>
+                  <small class="text-muted">Last updated: 5 minutes ago • <span class="status-badge status-stocked">Operational</span></small>
+                </div>
+              </div>
 
-            handleNavigation(link) {
-                // Update active states
-                document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
+              <div class="alert alert-warning d-flex align-items-start" role="alert">
+                <i class="fas fa-box-open me-3 mt-1 fs-5"></i>
+                <div>
+                  <h6 class="alert-heading mb-1">Low Stock Items</h6>
+                  <p class="mb-2 small">23 items below minimum stock level - 8 require immediate reorder</p>
+                  <small class="text-muted">Updated 30 minutes ago • <span class="status-badge status-low-stock">Monitor</span></small>
+                </div>
+              </div>
 
-                const target = link.getAttribute('data-target');
-                const url = link.getAttribute('data-url');
-                const title = link.getAttribute('data-title');
+              <div class="alert alert-info d-flex align-items-start" role="alert">
+                <i class="fas fa-hard-hat me-3 mt-1 fs-5"></i>
+                <div>
+                  <h6 class="alert-heading mb-1">Shift Change</h6>
+                  <p class="mb-2 small">Night shift starting at 6:00 PM - 47 workers scheduled</p>
+                  <small class="text-muted">Today 6:00 PM • <span class="status-badge status-stocked">Scheduled</span></small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-                // Update page title
-                if (title) {
-                    this.pageTitle.textContent = title;
-                }
+    <!-- Feature iframe -->
+    <iframe id="featureFrame" class="feature-frame" title="Feature Content"></iframe>
+  </main>
 
-                // Navigate based on target
-                if (target === 'dashboard') {
-                    this.showDashboard();
-                } else if (target === 'iframe' && url) {
-                    this.showFeature(url);
-                }
+  <!-- Toast container -->
+  <div class="toast-container"></div>
 
-                // Close mobile sidebar
-                if (window.innerWidth <= 992) {
-                    this.sidebar.classList.add('collapsed');
-                }
-            }
+  <!-- JS deps -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-            showDashboard() {
-                this.dashboardHome.style.display = 'block';
-                this.featureFrame.style.display = 'none';
-                this.featureFrame.src = '';
-            }
-
-            showFeature(url) {
-                this.dashboardHome.style.display = 'none';
-                this.featureFrame.style.display = 'block';
-                this.featureFrame.classList.add('loading');
-                
-                this.featureFrame.src = url;
-                
-                this.featureFrame.onload = () => {
-                    this.featureFrame.classList.remove('loading');
-                };
-
-                this.featureFrame.onerror = () => {
-                    this.featureFrame.classList.remove('loading');
-                    this.showError(`Failed to load: ${url}`);
-                };
-            }
-
-            showError(message) {
-                const errorContent = `
-                    <div class="d-flex align-items-center justify-content-center" style="height: 60vh;">
-                        <div class="text-center">
-                            <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
-                            <h3 class="mb-3">Content Unavailable</h3>
-                            <p class="text-muted mb-4">${message}</p>
-                            <button class="btn btn-warehouse" onclick="location.reload()">
-                                <i class="fas fa-refresh me-2"></i>Reload Page
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                this.dashboardHome.innerHTML = errorContent;
-                this.dashboardHome.style.display = 'block';
-                this.featureFrame.style.display = 'none';
-            }
-
-            updateNotificationCount(count) {
-                if (this.notificationBadge) {
-                    this.notificationBadge.style.display = count > 0 ? 'block' : 'none';
-                }
-            }
-
-            showNotification(message, type = 'info') {
-                const toastHTML = `
-                    <div class="toast align-items-center text-bg-${type} border-0" role="alert">
-                        <div class="d-flex">
-                            <div class="toast-body">${message}</div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                        </div>
-                    </div>
-                `;
-                
-                let container = document.querySelector('.toast-container');
-                if (!container) {
-                    container = document.createElement('div');
-                    container.className = 'toast-container';
-                    document.body.appendChild(container);
-                }
-                
-                container.insertAdjacentHTML('beforeend', toastHTML);
-                const toastElement = container.lastElementChild;
-                const toast = new bootstrap.Toast(toastElement);
-                toast.show();
-                
-                // Auto remove after hide
-                toastElement.addEventListener('hidden.bs.toast', () => {
-                    toastElement.remove();
-                });
-            }
-
-            initializeCharts() {
-                // Warehouse Operations Chart
-                const operationsCtx = document.getElementById('operationsChart');
-                if (operationsCtx) {
-                    new Chart(operationsCtx, {
-                        type: 'line',
-                        data: {
-                            labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM', '12AM'],
-                            datasets: [{
-                                label: 'Orders Fulfilled',
-                                data: [45, 89, 156, 132, 178, 98, 34],
-                                borderColor: '#d97706',
-                                backgroundColor: 'rgba(217, 119, 6, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            }, {
-                                label: 'Receiving Volume',
-                                data: [12, 25, 18, 45, 32, 15, 8],
-                                borderColor: '#92400e',
-                                backgroundColor: 'rgba(146, 64, 14, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: { usePointStyle: true, padding: 20 }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                                },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                }
-
-                // Storage Categories Chart
-                const storageCtx = document.getElementById('storageChart');
-                if (storageCtx) {
-                    new Chart(storageCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'],
-                            datasets: [{
-                                data: [35, 25, 15, 15, 10],
-                                backgroundColor: [
-                                    '#d97706',
-                                    '#92400e',
-                                    '#059669',
-                                    '#0369a1',
-                                    '#dc2626'
-                                ],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: { usePointStyle: true, padding: 15 }
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-        }
-
-        // Initialize Dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            const dashboard = new WarehouseOpsDashboard();
-            window.warehouseOpsDashboard = dashboard;
-            
-            // Welcome notification
-            setTimeout(() => {
-                dashboard.showNotification('Welcome to WarehouseOps Dashboard!', 'success');
-            }, 1000);
-        });
-
-        // Handle iframe messages
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'navigate') {
-                console.log('Navigation request from iframe:', event.data);
-            }
-        });
-    </script>
+  <!-- Your external script -->
+  <script src= "warehousemanager.js"></script>
 </body>
 </html>

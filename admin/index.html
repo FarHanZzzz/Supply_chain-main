@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>FRAAAAS | Admin Dashboard</title>
-    
+
     <!-- External Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         :root {
             --sidebar-width: 280px;
@@ -31,11 +31,7 @@
             --gradient-accent: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f1f5f9 100%);
@@ -60,103 +56,34 @@
             box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
         }
 
-        .sidebar.collapsed {
-            transform: translateX(-100%);
-        }
+        .sidebar.collapsed { transform: translateX(-100%); }
 
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            background: var(--gradient-primary);
-        }
+        .sidebar-header { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); background: var(--gradient-primary); }
+        .sidebar-header h3 { font-weight: 700; font-size: 1.4rem; letter-spacing: -0.5px; color: white; margin: 0; }
 
-        .sidebar-header h3 {
-            font-weight: 700;
-            font-size: 1.4rem;
-            letter-spacing: -0.5px;
-            color: white;
-            margin: 0;
-        }
-
-        .sidebar-menu {
-            padding: 1rem 0;
-        }
-
-        .sidebar-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
+        .sidebar-menu { padding: 1rem 0; }
+        .sidebar-menu ul { list-style: none; padding: 0; margin: 0; }
         .sidebar-menu li a {
-            display: flex;
-            align-items: center;
-            padding: 0.85rem 1.5rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: var(--transition);
-            border-left: 3px solid transparent;
-            font-weight: 500;
-            cursor: pointer;
+            display: flex; align-items: center; padding: 0.85rem 1.5rem;
+            color: var(--text-muted); text-decoration: none; transition: var(--transition);
+            border-left: 3px solid transparent; font-weight: 500; cursor: pointer;
         }
+        .sidebar-menu li a:hover, .sidebar-menu li a.active {
+            background: var(--sidebar-hover); border-left: 3px solid var(--primary-color);
+            color: var(--text-light); transform: translateX(2px);
+        }
+        .sidebar-menu li a i { margin-right: 0.75rem; width: 1.25rem; text-align: center; font-size: 1.1rem; transition: var(--transition); }
+        .sidebar-menu li a:hover i, .sidebar-menu li a.active i { color: var(--primary-color); transform: scale(1.1); }
 
-        .sidebar-menu li a:hover,
-        .sidebar-menu li a.active {
-            background: var(--sidebar-hover);
-            border-left: 3px solid var(--primary-color);
-            color: var(--text-light);
-            transform: translateX(2px);
-        }
-
-        .sidebar-menu li a i {
-            margin-right: 0.75rem;
-            width: 1.25rem;
-            text-align: center;
-            font-size: 1.1rem;
-            transition: var(--transition);
-        }
-
-        .sidebar-menu li a:hover i,
-        .sidebar-menu li a.active i {
-            color: var(--primary-color);
-            transform: scale(1.1);
-        }
-
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 1rem 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            background: rgba(0, 0, 0, 0.2);
-        }
+        .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); }
 
         /* Mobile Toggle Button */
         .toggle-btn {
-            position: fixed;
-            top: 1.25rem;
-            left: 1.25rem;
-            background: var(--gradient-primary);
-            color: var(--text-light);
-            border: none;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: var(--transition);
-            cursor: pointer;
+            position: fixed; top: 1.25rem; left: 1.25rem; background: var(--gradient-primary); color: var(--text-light);
+            border: none; border-radius: 50%; width: 42px; height: 42px; display: none; align-items: center; justify-content: center;
+            z-index: 999; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: var(--transition); cursor: pointer;
         }
-
-        .toggle-btn:hover {
-            transform: scale(1.05);
-        }
+        .toggle-btn:hover { transform: scale(1.05); }
 
         /* Main Content */
         .main-content {
@@ -168,318 +95,87 @@
 
         /* Top Bar */
         .top-bar {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255,255,255,0.95);
             backdrop-filter: blur(10px);
             padding: 0.8rem 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
             margin-bottom: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 0.75rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex; justify-content: space-between; align-items: center;
+            border-radius: 0.75rem; position: sticky; top: 0; z-index: 100; border: 1px solid rgba(255,255,255,0.2);
         }
 
-        .top-bar h1 {
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin: 0;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        .top-bar h1 { font-size: 1.4rem; font-weight: 700; margin: 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-        .top-bar .controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+        .top-bar .controls { display: flex; align-items: center; gap: 1rem; }
 
-        .notification-bell {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(59, 130, 246, 0.1);
-            transition: var(--transition);
-            color: var(--primary-color);
-            cursor: pointer;
-        }
+        .notification-bell { position: relative; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background: rgba(59,130,246,0.1); transition: var(--transition); color: var(--primary-color); cursor:pointer; }
+        .notification-bell:hover { background: rgba(59,130,246,0.2); transform: scale(1.05); }
+        .notification-badge { position:absolute; top:-2px; right:-2px; width:12px; height:12px; border-radius:50%; background: var(--danger-color); border: 2px solid white; display:none; }
 
-        .notification-bell:hover {
-            background: rgba(59, 130, 246, 0.2);
-            transform: scale(1.05);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--danger-color);
-            border: 2px solid white;
-            display: none;
-        }
-
-        .user-dropdown {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-            padding: 0.25rem;
-            border-radius: 50px;
-            transition: var(--transition);
-        }
-
-        .user-dropdown:hover {
-            background: rgba(59, 130, 246, 0.1);
-        }
-
-        .user-dropdown img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary-color);
-        }
-
-        .user-dropdown span {
-            font-weight: 600;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        .user-dropdown { display:flex; align-items:center; gap:0.75rem; cursor:pointer; padding:0.25rem; border-radius:50px; transition: var(--transition); }
+        .user-dropdown:hover { background: rgba(59,130,246,0.1); }
+        .user-dropdown img { width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color); }
+        .user-dropdown span { font-weight:600; background: var(--gradient-primary); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
 
         /* Cards */
-        .stat-card {
-            border: none;
-            border-radius: 0.75rem;
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
-            transition: var(--transition);
-            height: 100%;
-            background: white;
-            position: relative;
-        }
+        .stat-card { border:none; border-radius:0.75rem; box-shadow: var(--card-shadow); overflow:hidden; transition: var(--transition); height:100%; background:white; position:relative; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background: var(--gradient-primary); }
+        .stat-card:hover { transform: translateY(-8px); box-shadow: 0 25px 35px -5px rgba(0,0,0,0.15); }
+        .stat-card .card-body { padding:1.75rem; }
+        .stat-card h6 { text-transform:uppercase; font-size:0.75rem; font-weight:700; letter-spacing:0.1rem; margin-bottom:0.5rem; color:#64748b; }
+        .stat-card .value { font-size:2rem; font-weight:800; margin-bottom:0.5rem; background: var(--gradient-primary); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .stat-card .icon { display:flex; align-items:center; justify-content:center; width:55px; height:55px; border-radius:15px; background: var(--gradient-primary); color:white; font-size:1.5rem; }
 
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gradient-primary);
-        }
+        .chart-card { border:none; border-radius:0.75rem; box-shadow: var(--card-shadow); background:white; transition: var(--transition); height:100%; overflow:hidden; }
+        .chart-card .card-header { border:none; background: rgba(59,130,246,0.05); padding:1.25rem 1.5rem; font-weight:700; color:#1e293b; }
+        .chart-card .card-body { padding:1.25rem 1.5rem; }
 
-        .stat-card.primary::before {
-            background: var(--gradient-primary);
-        }
-
-        .stat-card.success::before {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-        }
-
-        .stat-card.warning::before {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-        }
-
-        .stat-card.danger::before {
-            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.15);
-        }
-
-        .stat-card .card-body {
-            padding: 1.75rem;
-        }
-
-        .stat-card h6 {
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.1rem;
-            margin-bottom: 0.5rem;
-            color: #64748b;
-        }
-
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-card .icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 55px;
-            height: 55px;
-            border-radius: 15px;
-            background: var(--gradient-primary);
-            color: white;
-            font-size: 1.5rem;
-        }
-
-        .stat-card.success .icon {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-        }
-
-        .stat-card.warning .icon {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-        }
-
-        .stat-card.danger .icon {
-            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-        }
-
-        .chart-card {
-            border: none;
-            border-radius: 0.75rem;
-            box-shadow: var(--card-shadow);
-            background: white;
-            transition: var(--transition);
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .chart-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.15);
-        }
-
-        .chart-card .card-header {
-            border: none;
-            background: rgba(59, 130, 246, 0.05);
-            padding: 1.25rem 1.5rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .chart-card .card-body {
-            padding: 1.25rem 1.5rem;
-        }
-
-        /* Feature Frame */
+        /* Feature Frame - changed: use dynamic height via JS; default min height to avoid tiny flicker */
         .feature-frame {
             width: 100%;
-            height: 700px;
             border: 0;
             border-radius: 0.75rem;
             background: white;
             box-shadow: var(--card-shadow);
             transition: var(--transition);
             display: none;
+            min-height: 400px;
+            height: 700px; /* fallback */
+        }
+
+        /* Provide an inner wrapper for iframe so we can control overflow and border-radius */
+        .iframe-wrapper {
+            width: 100%;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: white;
+            box-shadow: var(--card-shadow);
+            display: none;
         }
 
         /* Activity Feed */
-        .activity-feed {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .activity-feed li {
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            gap: 1rem;
-        }
-
-        .activity-feed li:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: var(--gradient-primary);
-            color: white;
-            flex-shrink: 0;
-        }
+        .activity-feed { list-style:none; padding:0; margin:0; }
+        .activity-feed li { padding:1rem 0; border-bottom: 1px solid var(--border-color); display:flex; gap:1rem; }
+        .activity-feed li:last-child { border-bottom:none; }
+        .activity-icon { display:flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:50%; background: var(--gradient-primary); color:white; flex-shrink:0; }
 
         /* Custom Button */
-        .btn-agriculture {
-            background: var(--gradient-primary);
-            border: none;
-            color: white;
-            font-weight: 600;
-            transition: var(--transition);
-            border-radius: 0.5rem;
-        }
-
-        .btn-agriculture:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-            color: white;
-        }
+        .btn-agriculture { background: var(--gradient-primary); border:none; color:white; font-weight:600; transition: var(--transition); border-radius:0.5rem; }
+        .btn-agriculture:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); color:white; }
 
         /* Status Badges */
-        .status-badge {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            text-transform: uppercase;
-            letter-spacing: 0.05rem;
-        }
-
-        .status-fresh {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success-color);
-        }
-
-        .status-monitored {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--primary-color);
-        }
-
-        .status-alert {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning-color);
-        }
-
-        .status-critical {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger-color);
-        }
+        .status-badge { font-size:0.75rem; font-weight:600; padding:0.25rem 0.75rem; border-radius:50px; text-transform:uppercase; letter-spacing:0.05rem; }
+        .status-fresh { background: rgba(16,185,129,0.1); color: var(--success-color); }
+        .status-monitored { background: rgba(59,130,246,0.1); color: var(--primary-color); }
+        .status-alert { background: rgba(245,158,11,0.1); color: var(--warning-color); }
+        .status-critical { background: rgba(239,68,68,0.1); color: var(--danger-color); }
 
         /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.6s ease-out forwards;
-        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; }
 
         /* Loading State */
-        .loading {
-            opacity: 0.5;
-            pointer-events: none;
-        }
+        .loading { opacity:0.5; pointer-events:none; }
 
         /* Toast Container */
         .toast-container {
@@ -487,45 +183,25 @@
             top: 1rem;
             right: 1rem;
             z-index: 1055;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-end;
         }
 
         /* Responsive Design */
         @media (max-width: 992px) {
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .toggle-btn {
-                display: flex;
-            }
-            
-            .sidebar.collapsed {
-                transform: translateX(-100%);
-            }
-            
-            .top-bar .controls .btn-toolbar {
-                display: none;
-            }
+            .main-content { margin-left: 0; }
+            .toggle-btn { display: flex; }
+            .sidebar.collapsed { transform: translateX(-100%); }
+            .top-bar .controls .btn-toolbar { display: none; }
         }
 
         @media (max-width: 768px) {
-            .stat-card .value {
-                font-size: 1.75rem;
-            }
-            
-            .stat-card .icon {
-                width: 48px;
-                height: 48px;
-                font-size: 1.25rem;
-            }
-            
-            .top-bar h1 {
-                font-size: 1.2rem;
-            }
-            
-            .user-dropdown span {
-                display: none;
-            }
+            .stat-card .value { font-size:1.75rem; }
+            .stat-card .icon { width:48px; height:48px; font-size:1.25rem; }
+            .top-bar h1 { font-size:1.2rem; }
+            .user-dropdown span { display:none; }
         }
     </style>
 </head>
@@ -543,7 +219,7 @@
                 <span>FRAAAAS</span>
             </h3>
         </div>
-        
+
         <nav class="sidebar-menu">
             <ul>
                 <li>
@@ -567,7 +243,7 @@
                 <li>
                     <a href="#" data-target="iframe" data-url="/feature3/" data-title="Logistics & Tracking">
                         <i class="fas fa-truck"></i>
-                        Logistics & Tracking 
+                        Logistics & Tracking
                     </a>
                 </li>
                 <li>
@@ -590,7 +266,7 @@
                 </li>
             </ul>
         </nav>
-        
+
         <div class="sidebar-footer">
             <small>FRAAAAS v2.0.0</small>
         </div>
@@ -599,7 +275,7 @@
     <!-- Main Content Area -->
     <main class="main-content">
         <!-- Top Navigation Bar -->
-        <div class="top-bar">
+        <div class="top-bar" id="topBar">
             <div>
                 <h1 id="pageTitle">Dashboard Overview</h1>
             </div>
@@ -623,12 +299,12 @@
                         </ul>
                     </div>
                 </div>
-                
+
                 <div class="notification-bell" id="notificationBell">
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge" id="notificationBadge"></span>
                 </div>
-                
+
                 <div class="dropdown user-dropdown">
                     <a class="dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                         <img src="https://ui-avatars.com/api/?name=Admin&background=3b82f6&color=fff&bold=true" alt="Admin">
@@ -655,18 +331,14 @@
                                 <div>
                                     <h6>Active Products</h6>
                                     <div class="value">24</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-arrow-up me-1"></i> 5.2% from last week
-                                    </small>
+                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 5.2% from last week</small>
                                 </div>
-                                <div class="icon">
-                                    <i class="fas fa-apple-alt"></i>
-                                </div>
+                                <div class="icon"><i class="fas fa-apple-alt"></i></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="card stat-card success fade-in" style="animation-delay: 0.2s;">
                         <div class="card-body">
@@ -674,18 +346,14 @@
                                 <div>
                                     <h6>Inventory Items</h6>
                                     <div class="value">156</div>
-                                    <small class="text-success">
-                                        <i class="fas fa-arrow-up me-1"></i> 2.4% from last week
-                                    </small>
+                                    <small class="text-success"><i class="fas fa-arrow-up me-1"></i> 2.4% from last week</small>
                                 </div>
-                                <div class="icon">
-                                    <i class="fas fa-warehouse"></i>
-                                </div>
+                                <div class="icon"><i class="fas fa-warehouse"></i></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="card stat-card warning fade-in" style="animation-delay: 0.3s;">
                         <div class="card-body">
@@ -693,18 +361,14 @@
                                 <div>
                                     <h6>Active Shipments</h6>
                                     <div class="value">12</div>
-                                    <small class="text-danger">
-                                        <i class="fas fa-arrow-down me-1"></i> 1.3% from last week
-                                    </small>
+                                    <small class="text-danger"><i class="fas fa-arrow-down me-1"></i> 1.3% from last week</small>
                                 </div>
-                                <div class="icon">
-                                    <i class="fas fa-truck"></i>
-                                </div>
+                                <div class="icon"><i class="fas fa-truck"></i></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="card stat-card danger fade-in" style="animation-delay: 0.4s;">
                         <div class="card-body">
@@ -712,13 +376,9 @@
                                 <div>
                                     <h6>Alerts</h6>
                                     <div class="value">3</div>
-                                    <small class="text-danger">
-                                        <i class="fas fa-exclamation-circle me-1"></i> Requires attention
-                                    </small>
+                                    <small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i> Requires attention</small>
                                 </div>
-                                <div class="icon">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </div>
+                                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
                             </div>
                         </div>
                     </div>
@@ -737,7 +397,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-12 col-lg-4">
                     <div class="chart-card">
                         <div class="card-header">
@@ -754,61 +414,49 @@
             <div class="row g-4">
                 <div class="col-12 col-lg-6">
                     <div class="chart-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Recent Agriculture Activity</h5>
-                        </div>
+                        <div class="card-header"><h5 class="mb-0">Recent Agriculture Activity</h5></div>
                         <div class="card-body">
                             <ul class="activity-feed">
                                 <li>
-                                    <div class="activity-icon">
-                                        <i class="fas fa-truck-loading"></i>
-                                    </div>
+                                    <div class="activity-icon"><i class="fas fa-truck-loading"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="fw-semibold">New Shipment Created</div>
                                         <div class="text-muted small">Shipment #FR-2023-089 to Miami Distribution Center</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">10 minutes ago</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">10 minutes ago</div>
                                     </div>
                                 </li>
                                 <li>
-                                    <div class="activity-icon" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
-                                        <i class="fas fa-temperature-low"></i>
-                                    </div>
+                                    <div class="activity-icon" style="background: linear-gradient(135deg,#10b981 0%,#34d399 100%);"><i class="fas fa-temperature-low"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="fw-semibold">Temperature Alert</div>
                                         <div class="text-muted small">Container #CT-456 exceeded threshold by 2.5°C</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">45 minutes ago</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">45 minutes ago</div>
                                     </div>
                                 </li>
                                 <li>
-                                    <div class="activity-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
-                                        <i class="fas fa-file-invoice"></i>
-                                    </div>
+                                    <div class="activity-icon" style="background: linear-gradient(135deg,#f59e0b 0%,#fbbf24 100%);"><i class="fas fa-file-invoice"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="fw-semibold">Document Uploaded</div>
                                         <div class="text-muted small">Customs clearance for shipment #FR-2023-087</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">2 hours ago</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">2 hours ago</div>
                                     </div>
                                 </li>
                                 <li>
-                                    <div class="activity-icon" style="background: var(--gradient-primary);">
-                                        <i class="fas fa-apple-alt"></i>
-                                    </div>
+                                    <div class="activity-icon" style="background: var(--gradient-primary);"><i class="fas fa-apple-alt"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="fw-semibold">Inventory Updated</div>
                                         <div class="text-muted small">Added 120 units of Organic Apples to Warehouse B</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">4 hours ago</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">4 hours ago</div>
                                     </div>
                                 </li>
                             </ul>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-12 col-lg-6">
                     <div class="chart-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Current System Alerts</h5>
-                        </div>
+                        <div class="card-header"><h5 class="mb-0">Current System Alerts</h5></div>
                         <div class="card-body">
                             <div class="alert alert-danger d-flex align-items-start" role="alert">
                                 <i class="fas fa-exclamation-triangle me-3 mt-1 fs-5"></i>
@@ -818,7 +466,7 @@
                                     <small class="text-muted">2 hours ago • Shipment #FR-2023-084 • <span class="status-badge status-critical">Critical</span></small>
                                 </div>
                             </div>
-                            
+
                             <div class="alert alert-warning d-flex align-items-start" role="alert">
                                 <i class="fas fa-clock me-3 mt-1 fs-5"></i>
                                 <div>
@@ -827,7 +475,7 @@
                                     <small class="text-muted">5 hours ago • ETA: 2:30 PM • <span class="status-badge status-alert">Monitor</span></small>
                                 </div>
                             </div>
-                            
+
                             <div class="alert alert-info d-flex align-items-start" role="alert">
                                 <i class="fas fa-box-open me-3 mt-1 fs-5"></i>
                                 <div>
@@ -842,267 +490,19 @@
             </div>
         </section>
 
-        <!-- Feature iframe for sub-pages -->
-        <iframe id="featureFrame" class="feature-frame" title="Feature Content"></iframe>
+        <!-- Feature iframe for sub-pages (wrapper ensures rounded corners + internal scroll) -->
+        <div class="iframe-wrapper" id="iframeWrapper">
+            <iframe id="featureFrame" class="feature-frame" title="Feature Content" frameborder="0" scrolling="auto"></iframe>
+        </div>
     </main>
 
     <!-- Toast Container -->
-    <div class="toast-container"></div>
+    <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <!-- JavaScript Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <script>
-        // FRAAAAS Dashboard JavaScript
-        class FraaasDashboard {
-            constructor() {
-                this.sidebar = document.getElementById('sidebar');
-                this.sidebarToggle = document.getElementById('sidebarToggle');
-                this.dashboardHome = document.getElementById('dashboardHome');
-                this.featureFrame = document.getElementById('featureFrame');
-                this.pageTitle = document.getElementById('pageTitle');
-                this.notificationBadge = document.getElementById('notificationBadge');
-                
-                this.initializeEventListeners();
-                this.initializeCharts();
-                this.showDashboard();
-                this.updateNotificationCount(3);
-            }
-
-            initializeEventListeners() {
-                // Mobile sidebar toggle
-                if (this.sidebarToggle) {
-                    this.sidebarToggle.addEventListener('click', () => {
-                        this.sidebar.classList.toggle('collapsed');
-                    });
-                }
-
-                // Navigation links
-                const navLinks = document.querySelectorAll('.sidebar-menu a');
-                navLinks.forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.handleNavigation(link);
-                    });
-                });
-
-                // Responsive handling
-                window.addEventListener('resize', () => {
-                    if (window.innerWidth > 992) {
-                        this.sidebar.classList.remove('collapsed');
-                    }
-                });
-
-                // Notification bell
-                const notificationBell = document.getElementById('notificationBell');
-                if (notificationBell) {
-                    notificationBell.addEventListener('click', () => {
-                        this.showNotification('You have 3 agriculture system alerts', 'warning');
-                    });
-                }
-            }
-
-            handleNavigation(link) {
-                // Update active states
-                document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-
-                const target = link.getAttribute('data-target');
-                const url = link.getAttribute('data-url');
-                const title = link.getAttribute('data-title');
-
-                // Update page title
-                if (title) {
-                    this.pageTitle.textContent = title;
-                }
-
-                // Navigate based on target
-                if (target === 'dashboard') {
-                    this.showDashboard();
-                } else if (target === 'iframe' && url) {
-                    this.showFeature(url);
-                }
-
-                // Close mobile sidebar
-                if (window.innerWidth <= 992) {
-                    this.sidebar.classList.add('collapsed');
-                }
-            }
-
-            showDashboard() {
-                this.dashboardHome.style.display = 'block';
-                this.featureFrame.style.display = 'none';
-                this.featureFrame.src = '';
-            }
-
-            showFeature(url) {
-                this.dashboardHome.style.display = 'none';
-                this.featureFrame.style.display = 'block';
-                this.featureFrame.classList.add('loading');
-                
-                this.featureFrame.src = url;
-                
-                this.featureFrame.onload = () => {
-                    this.featureFrame.classList.remove('loading');
-                };
-
-                this.featureFrame.onerror = () => {
-                    this.featureFrame.classList.remove('loading');
-                    this.showError(`Failed to load: ${url}`);
-                };
-            }
-
-            showError(message) {
-                const errorContent = `
-                    <div class="d-flex align-items-center justify-content-center" style="height: 60vh;">
-                        <div class="text-center">
-                            <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
-                            <h3 class="mb-3">Content Unavailable</h3>
-                            <p class="text-muted mb-4">${message}</p>
-                            <button class="btn btn-agriculture" onclick="location.reload()">
-                                <i class="fas fa-refresh me-2"></i>Reload Page
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                this.dashboardHome.innerHTML = errorContent;
-                this.dashboardHome.style.display = 'block';
-                this.featureFrame.style.display = 'none';
-            }
-
-            updateNotificationCount(count) {
-                if (this.notificationBadge) {
-                    this.notificationBadge.style.display = count > 0 ? 'block' : 'none';
-                }
-            }
-
-            showNotification(message, type = 'info') {
-                const toastHTML = `
-                    <div class="toast align-items-center text-bg-${type} border-0" role="alert">
-                        <div class="d-flex">
-                            <div class="toast-body">${message}</div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                        </div>
-                    </div>
-                `;
-                
-                let container = document.querySelector('.toast-container');
-                if (!container) {
-                    container = document.createElement('div');
-                    container.className = 'toast-container';
-                    document.body.appendChild(container);
-                }
-                
-                container.insertAdjacentHTML('beforeend', toastHTML);
-                const toastElement = container.lastElementChild;
-                const toast = new bootstrap.Toast(toastElement);
-                toast.show();
-                
-                // Auto remove after hide
-                toastElement.addEventListener('hidden.bs.toast', () => {
-                    toastElement.remove();
-                });
-            }
-
-            initializeCharts() {
-                // Shipment Performance Chart
-                const performanceCtx = document.getElementById('performanceChart');
-                if (performanceCtx) {
-                    new Chart(performanceCtx, {
-                        type: 'line',
-                        data: {
-                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                            datasets: [{
-                                label: 'Shipments Completed',
-                                data: [45, 52, 48, 61, 55, 68],
-                                borderColor: '#3b82f6',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            }, {
-                                label: 'Temperature Alerts',
-                                data: [8, 12, 6, 15, 9, 7],
-                                borderColor: '#ef4444',
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: { usePointStyle: true, padding: 20 }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                                },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                }
-
-                // Product Categories Chart
-                const inventoryCtx = document.getElementById('inventoryChart');
-                if (inventoryCtx) {
-                    new Chart(inventoryCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Fruits', 'Vegetables', 'Grains', 'Dairy', 'Meat'],
-                            datasets: [{
-                                data: [35, 25, 20, 12, 8],
-                                backgroundColor: [
-                                    '#3b82f6',
-                                    '#10b981',
-                                    '#f59e0b',
-                                    '#ef4444',
-                                    '#8b5cf6'
-                                ],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: { usePointStyle: true, padding: 15 }
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-        }
-
-        // Initialize Dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            const dashboard = new FraaasDashboard();
-            window.fraaasDashboard = dashboard;
-            
-            // Welcome notification
-            setTimeout(() => {
-                dashboard.showNotification('Welcome to FRAAAAS Agriculture Dashboard!', 'success');
-            }, 1000);
-        });
-
-        // Handle iframe messages
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'navigate') {
-                console.log('Navigation request from iframe:', event.data);
-            }
-        });
-    </script>
+    <script  src = "admindashboard.js">  </script>
 </body>
 </html>

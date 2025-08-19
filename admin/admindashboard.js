@@ -1,229 +1,257 @@
-document.addEventListener('DOMContentLoaded', () => {
-            // Grab key elements
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.getElementById('sidebarToggle');
-            const pageTitleEl = document.getElementById('pageTitle');
-            const dashboardHome = document.getElementById('dashboardHome');
-            const featureFrame = document.getElementById('featureFrame');
+// FRAAAAS Dashboard JavaScript
+class FraaasDashboard {
+    constructor() {
+        this.sidebar = document.getElementById('sidebar');
+        this.sidebarToggle = document.getElementById('sidebarToggle');
+        this.dashboardHome = document.getElementById('dashboardHome');
+        this.featureFrame = document.getElementById('featureFrame');
+        this.iframeWrapper = document.getElementById('iframeWrapper');
+        this.pageTitle = document.getElementById('pageTitle');
+        this.notificationBadge = document.getElementById('notificationBadge');
+        this.topBar = document.getElementById('topBar');
 
+        this.initializeEventListeners();
+        this.initializeCharts();
+        this.showDashboard();
+        this.updateNotificationCount(3);
 
+        // ensure iframe is sized on first load
+        this.adjustFeatureFrameHeight();
+    }
 
-            // Flags for chart initialization
-            let chartsInitialised = false;
-            let performanceChartInstance = null;
-            let inventoryChartInstance = null;
-
-            
-
-            /**
-             * Toggle the sidebar on small screens.
-             */
-            toggleBtn?.addEventListener('click', () => {
-                // Toggle a class on the sidebar to control its transform
-                sidebar.classList.toggle('collapsed');
+    initializeEventListeners() {
+        // Mobile sidebar toggle
+        if (this.sidebarToggle) {
+            this.sidebarToggle.addEventListener('click', () => {
+                this.sidebar.classList.toggle('collapsed');
             });
+        }
 
-            /**
-             * Handle sidebar link clicks using event delegation.
-             */
-            sidebar.addEventListener('click', (e) => {
-                const link = e.target.closest('a');
-                if (!link) return;
-
-                const target = link.dataset.target;
-                const title = link.dataset.title || 'FRAAAAS';
-
-                if (!target) return; // allow normal anchors without data-target
+        // Navigation links
+        const navLinks = document.querySelectorAll('.sidebar-menu a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
                 e.preventDefault();
+                this.handleNavigation(link);
+            });
+        });
 
-                setActiveLink(link);
-                pageTitleEl.textContent = title;
+        // Responsive handling - remove collapsed when big
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 992) {
+                this.sidebar.classList.remove('collapsed');
+            }
+            // Recalculate iframe height on resize
+            this.adjustFeatureFrameHeight();
+        });
 
-                if (target === 'dashboard') {
-                    showDashboard();
-                } else if (target === 'iframe') {
-                    const url = link.dataset.url;
-                    if (url) {
-                        loadFeatureInIframe(url);
-                    }
-                }
+        // Notification bell
+        const notificationBell = document.getElementById('notificationBell');
+        if (notificationBell) {
+            notificationBell.addEventListener('click', () => {
+                this.showNotification('You have 3 agriculture system alerts', 'warning');
+            });
+        }
 
-                // Collapse the sidebar on small screens after selecting an item
-                if (window.innerWidth <= 992) {
-                    sidebar.classList.add('collapsed');
+        // Recompute iframe size after iframe content loads (some pages may have dynamic header)
+        this.featureFrame.addEventListener('load', () => {
+            this.featureFrame.classList.remove('loading');
+            // adjust height again after load
+            setTimeout(() => this.adjustFeatureFrameHeight(), 120);
+        });
+
+        this.featureFrame.addEventListener('error', () => {
+            this.featureFrame.classList.remove('loading');
+            this.showError('Failed to load feature content');
+        });
+    }
+
+    handleNavigation(link) {
+        // Update active states
+        document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        const target = link.getAttribute('data-target');
+        const url = link.getAttribute('data-url');
+        const title = link.getAttribute('data-title');
+
+        // Update page title
+        if (title) { this.pageTitle.textContent = title; }
+
+        // Navigate based on target
+        if (target === 'dashboard') {
+            this.showDashboard();
+        } else if (target === 'iframe' && url) {
+            this.showFeature(url);
+        }
+
+        // Close mobile sidebar
+        if (window.innerWidth <= 992) {
+            this.sidebar.classList.add('collapsed');
+        }
+    }
+
+    showDashboard() {
+        this.dashboardHome.style.display = 'block';
+        this.iframeWrapper.style.display = 'none';
+        this.featureFrame.style.display = 'none';
+        // clear src to stop background activity if desired
+        this.featureFrame.src = '';
+    }
+
+    showFeature(url) {
+        this.dashboardHome.style.display = 'none';
+        this.iframeWrapper.style.display = 'block';
+        this.featureFrame.style.display = 'block';
+        this.featureFrame.classList.add('loading');
+
+        // set src (this triggers load event above)
+        this.featureFrame.src = url;
+
+        // immediately adjust height to avoid bottom gap
+        this.adjustFeatureFrameHeight();
+    }
+
+    showError(message) {
+        const errorContent = `
+            <div class="d-flex align-items-center justify-content-center" style="height: 60vh;">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 4rem;"></i>
+                    <h3 class="mb-3">Content Unavailable</h3>
+                    <p class="text-muted mb-4">${message}</p>
+                    <button class="btn btn-agriculture" onclick="location.reload()">
+                        <i class="fas fa-refresh me-2"></i>Reload Page
+                    </button>
+                </div>
+            </div>
+        `;
+        this.dashboardHome.innerHTML = errorContent;
+        this.dashboardHome.style.display = 'block';
+        this.iframeWrapper.style.display = 'none';
+        this.featureFrame.style.display = 'none';
+    }
+
+    updateNotificationCount(count) {
+        if (this.notificationBadge) {
+            this.notificationBadge.style.display = count > 0 ? 'block' : 'none';
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const toastHTML = `
+            <div class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        container.insertAdjacentHTML('beforeend', toastHTML);
+        const toastElement = container.lastElementChild;
+        const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+        toast.show();
+
+        // Remove element from DOM after hidden to keep container clean
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            if (toastElement && toastElement.parentNode) toastElement.parentNode.removeChild(toastElement);
+        });
+    }
+
+    /**
+     * Dynamically calculate the iframe height so it exactly fills the space
+     * under the top bar inside the viewport. This avoids bottom gaps.
+     */
+    adjustFeatureFrameHeight() {
+        // If wrapper not visible, nothing to do
+        if (!this.iframeWrapper || this.iframeWrapper.style.display === 'none') return;
+
+        // Use the viewport height minus the bottom of the top bar minus some spacing
+        const topBarRect = this.topBar ? this.topBar.getBoundingClientRect() : { bottom: 0 };
+        const available = Math.max(window.innerHeight - Math.ceil(topBarRect.bottom) - 24, 300); // min 300px
+        // Set both wrapper and iframe to this height
+        this.iframeWrapper.style.height = available + 'px';
+        this.featureFrame.style.height = available + 'px';
+    }
+
+    initializeCharts() {
+        // Shipment Performance Chart
+        const performanceCtx = document.getElementById('performanceChart');
+        if (performanceCtx) {
+            new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+                    datasets: [{
+                        label: 'Shipments Completed',
+                        data: [45,52,48,61,55,68],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        borderWidth: 3, fill: true, tension: 0.4
+                    },{
+                        label: 'Temperature Alerts',
+                        data: [8,12,6,15,9,7],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239,68,68,0.1)',
+                        borderWidth: 3, fill: true, tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
                 }
             });
+        }
 
-            /**
-             * Set the clicked link as active and remove active state from others.
-             *
-             * @param {HTMLElement} activeLink The link element that should become active
-             */
-            function setActiveLink(activeLink) {
-                sidebar.querySelectorAll('.sidebar-menu a').forEach((anchor) => {
-                    anchor.classList.remove('active');
-                });
-                activeLink.classList.add('active');
-            }
-
-            /**
-             * Display the dashboard and hide the feature iframe.  Initialize charts
-             * once on first visit.
-             */
-            function showDashboard() {
-                dashboardHome.classList.remove('d-none');
-                featureFrame.classList.remove('active');
-                featureFrame.removeAttribute('src');
-
-                if (!chartsInitialised) {
-                    initDashboardCharts();
-                    chartsInitialised = true;
+        // Product Categories Chart
+        const inventoryCtx = document.getElementById('inventoryChart');
+        if (inventoryCtx) {
+            new Chart(inventoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Fruits','Vegetables','Grains','Dairy','Meat'],
+                    datasets: [{
+                        data: [35,25,20,12,8],
+                        backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15 } } }
                 }
-            }
+            });
+        }
+    }
+}
 
-            /**
-             * Load a feature page into the iframe.
-             *
-             * @param {string} url The relative or absolute URL to load
-             */
-            function loadFeatureInIframe(url) {
-                // Hide dashboard and show iframe
-                dashboardHome.classList.add('d-none');
-                featureFrame.classList.add('active');
+// Initialize Dashboard
+document.addEventListener('DOMContentLoaded', () => {
+    const dashboard = new FraaasDashboard();
+    window.fraaasDashboard = dashboard;
 
-                // Always set the src to force a reload
-                featureFrame.setAttribute('src', url);
+    // Welcome notification
+    setTimeout(() => {
+        dashboard.showNotification('Welcome to FRAAAAS Agriculture Dashboard!', 'success');
+    }, 1000);
 
-                // Reset height to minimum before content loads
-                featureFrame.style.height = '700px';
+    // If user lands directly on a feature (e.g. deep link), ensure iframe height is correct after a short delay
+    setTimeout(() => dashboard.adjustFeatureFrameHeight(), 300);
+});
 
-                // Listen for iframe load to adjust height
-                featureFrame.onload = () => {
-                    try {
-                        const doc = featureFrame.contentDocument || featureFrame.contentWindow.document;
-                        const height = Math.max(
-                            doc.body.scrollHeight,
-                            doc.documentElement.scrollHeight,
-                            doc.body.offsetHeight,
-                            doc.documentElement.offsetHeight
-                        );
-                        // Apply a minimum height to prevent sudden collapses
-                        featureFrame.style.height = Math.max(height + 20, 700) + 'px';
-                    } catch (err) {
-                        // If cross-origin restrictions prevent access, fall back to a fixed height
-                        console.warn('Could not auto-resize iframe:', err);
-                        featureFrame.style.height = '800px';
-                    }
-                };
-            }
-
-            /**
-             * Initialize charts on the dashboard.
-             */
-            function initDashboardCharts() {
-                const perfCanvas = document.getElementById('performanceChart');
-                const invCanvas = document.getElementById('inventoryChart');
-
-                if (perfCanvas && perfCanvas.getContext) {
-                    const ctx = perfCanvas.getContext('2d');
-                    performanceChartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                            datasets: [
-                                {
-                                    label: 'On-time delivery %',
-                                    data: [92, 94, 90, 96, 95, 93, 97],
-                                    borderColor: '#3b82f6',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    tension: 0.35,
-                                    fill: true,
-                                    pointBackgroundColor: '#fff',
-                                    pointBorderWidth: 2,
-                                    pointRadius: 4
-                                },
-                                {
-                                    label: 'Temperature compliance %',
-                                    data: [88, 91, 89, 95, 92, 90, 94],
-                                    borderColor: '#10b981',
-                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                    tension: 0.35,
-                                    fill: true,
-                                    pointBackgroundColor: '#fff',
-                                    pointBorderWidth: 2,
-                                    pointRadius: 4
-                                }
-                            ],
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: { 
-                                    beginAtZero: true, 
-                                    max: 100,
-                                    grid: {
-                                        color: 'rgba(0, 0, 0, 0.05)'
-                                    }
-                                },
-                                x: {
-                                    grid: {
-                                        display: false
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: { 
-                                    position: 'top',
-                                    labels: {
-                                        usePointStyle: true,
-                                        padding: 20
-                                    }
-                                },
-                            },
-                            interaction: {
-                                intersect: false,
-                                mode: 'index'
-                            }
-                        },
-                    });
-                }
-
-                if (invCanvas && invCanvas.getContext) {
-                    const ctx = invCanvas.getContext('2d');
-                    inventoryChartInstance = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['In Stock', 'Reserved', 'Out of Stock', 'Damaged'],
-                            datasets: [
-                                {
-                                    label: 'Inventory',
-                                    data: [65, 25, 7, 3],
-                                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
-                                    borderWidth: 0,
-                                },
-                            ],
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { 
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 20,
-                                        font: {
-                                            size: 12
-                                        }
-                                    }
-                                },
-                            },
-                            cutout: '70%',
-                        },
-                    });
-                }
-            }
-
-            // By default, show the dashboard on initial load
-            showDashboard();
-        });
+// Handle iframe messages (left intact)
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'navigate') {
+        console.log('Navigation request from iframe:', event.data);
+    }
+});
