@@ -230,11 +230,8 @@ CREATE TABLE Sensors (
 CREATE TABLE Sensor_Data (
     sensor_data_id INT AUTO_INCREMENT PRIMARY KEY,
     sensor_id INT NOT NULL,
-    timestamp DATETIME,
     temperature DECIMAL(5,2),
     humidity DECIMAL(5,2),
-    travel_duration INT,
-    coordinates VARCHAR(255),
     CONSTRAINT fk_sensor_data_sensor FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE
 );
 
@@ -456,19 +453,116 @@ INSERT INTO Shipping_Documents (shipment_id, document_type, document_number, iss
 (1, 'Invoice', 'INV-001', '2024-06-17', 'Admin', '/invoices/INV-001.pdf', 'Approved', 'Initial shipment invoice'),
 (2, 'Bill of Lading', 'BOL-001', '2024-06-25', 'Admin', '/bills/BOL-001.pdf', 'Approved', 'Product delivery'),
 (3, 'Customs Declaration', 'CUS-001', '2024-09-03', 'Admin', '/customs/CUS-001.pdf', 'Pending', 'International shipment');
-
 INSERT INTO Sensors (sensor_type, warehouse_id, transport_id) VALUES
-('Temperature', 2, NULL),
-('Humidity', 1, NULL),
-('GPS', NULL, 1),
-('Temperature', NULL, 3);
+-- Warehouse combined sensors (Temperature/Humidity)
+('Temperature/Humidity', 1, NULL),  -- Central Warehouse
+('Temperature/Humidity', 2, NULL),  -- Cold Storage Unit  
+('Temperature/Humidity', 3, NULL),  -- Dry Storage Facility
+-- Transport combined sensors (Temperature/Humidity) for transports 1..10
+('Temperature/Humidity', NULL, 1),
+('Temperature/Humidity', NULL, 2),
+('Temperature/Humidity', NULL, 3),
+('Temperature/Humidity', NULL, 4),
+('Temperature/Humidity', NULL, 5),
+('Temperature/Humidity', NULL, 6),
+('Temperature/Humidity', NULL, 7),
+('Temperature/Humidity', NULL, 8),
+('Temperature/Humidity', NULL, 9),
+('Temperature/Humidity', NULL, 10);
 
-INSERT INTO Sensor_Data (sensor_id, timestamp, temperature, humidity, travel_duration, coordinates) VALUES
-(1, '2024-06-16 10:00:00', 4.5, NULL, NULL, NULL),
-(2, '2024-06-16 10:00:00', NULL, 65.0, NULL, NULL),
-(3, '2024-06-17 08:30:00', NULL, NULL, 120, '40.7128,-74.0060'),
-(4, '2024-09-03 14:15:00', 2.0, NULL, NULL, NULL);
+-- Seed sensor data with more realistic readings
+INSERT INTO Sensor_Data (sensor_id, temperature, humidity) VALUES
+-- Central Warehouse (sensor_id 1) - multiple readings
+(1, 12.50, 45.00),
+(1, 11.20, 46.50),
+(1, 13.10, 44.20),
+(1, 12.80, 47.30),
+(1, 11.90, 45.80),
 
+-- Cold Storage Unit (sensor_id 2) - multiple readings
+(2, 4.00, 70.00),
+(2, 3.50, 72.50),
+(2, 4.20, 69.30),
+(2, 3.80, 71.20),
+(2, 4.10, 70.80),
+
+-- Dry Storage Facility (sensor_id 3) - multiple readings
+(3, 18.00, 35.00),
+(3, 17.50, 36.20),
+(3, 18.30, 34.50),
+(3, 17.80, 35.80),
+(3, 18.20, 35.20),
+
+-- Transport sensors with realistic cold chain temperatures
+-- Transport 1 (sensor_id 4)
+(4, 6.20, 59.00),
+(4, 5.80, 61.50),
+(4, 6.50, 58.30),
+(4, 6.10, 60.20),
+(4, 5.90, 59.80),
+
+-- Transport 2 (sensor_id 5)
+(5, 7.10, 61.50),
+(5, 6.90, 62.30),
+(5, 7.30, 60.80),
+(5, 7.00, 61.90),
+(5, 7.20, 61.20),
+
+-- Transport 3 (sensor_id 6)
+(6, 5.80, 62.30),
+(6, 5.60, 63.50),
+(6, 6.00, 61.80),
+(6, 5.70, 62.90),
+(6, 5.90, 62.10),
+
+-- Transport 4 (sensor_id 7)
+(7, 6.70, 58.40),
+(7, 6.50, 59.20),
+(7, 6.90, 57.80),
+(7, 6.60, 58.90),
+(7, 6.80, 58.10),
+
+-- Transport 5 (sensor_id 8) - with some alerts
+(8, 8.20, 64.10),
+(8, 28.50, 85.20), -- Temperature and humidity alerts
+(8, 7.90, 63.80),
+(8, 8.10, 64.50),
+(8, 8.00, 64.20),
+
+-- Transport 6 (sensor_id 9)
+(9, 7.90, 60.20),
+(9, 7.70, 61.00),
+(9, 8.10, 59.80),
+(9, 7.80, 60.50),
+(9, 7.95, 60.10),
+
+-- Transport 7 (sensor_id 10)
+(10, 6.10, 57.80),
+(10, 5.90, 58.50),
+(10, 6.30, 57.20),
+(10, 6.00, 58.10),
+(10, 6.20, 57.90),
+
+-- Transport 8 (sensor_id 11)
+(11, 5.60, 63.50),
+(11, 5.40, 64.20),
+(11, 5.80, 62.90),
+(11, 5.50, 63.80),
+(11, 5.70, 63.30),
+
+-- Transport 9 (sensor_id 12) - with temperature alert
+(12, 6.40, 66.20),
+(12, -2.10, 25.30), -- Temperature alert (too cold)
+(12, 6.20, 65.80),
+(12, 6.50, 66.50),
+(12, 6.30, 66.00),
+
+-- Transport 10 (sensor_id 13)
+(13, 7.30, 59.90),
+(13, 7.10, 60.50),
+(13, 7.50, 59.30),
+(13, 7.20, 60.20),
+(13, 7.40, 59.70);
 INSERT INTO Deliveries
   (vehicle_license_no, delivery_date, delivery_time, delivery_man_name,
    expected_time, delivered_time, spoilage_quantity, delivery_status, delivery_success)

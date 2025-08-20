@@ -31,11 +31,8 @@ try {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $result = $handler->addSensorData(
                     $input['sensor_id'],
-                    $input['timestamp'],
                     $input['temperature'] ?? null,
-                    $input['humidity'] ?? null,
-                    $input['travel_duration'] ?? null,
-                    $input['coordinates'] ?? null
+                    $input['humidity'] ?? null
                 );
                 
                 if ($result) {
@@ -52,11 +49,8 @@ try {
                 $result = $handler->updateSensorData(
                     $input['sensor_data_id'],
                     $input['sensor_id'],
-                    $input['timestamp'],
                     $input['temperature'] ?? null,
-                    $input['humidity'] ?? null,
-                    $input['travel_duration'] ?? null,
-                    $input['coordinates'] ?? null
+                    $input['humidity'] ?? null
                 );
                 
                 if ($result) {
@@ -88,8 +82,6 @@ try {
             }
             break;
 
-        // generate_dummy_sensor_data endpoint removed; dummy data is auto-created when adding a sensor
-
         // ==================== SENSOR ENDPOINTS ====================
         case 'get_sensors':
             if ($method === 'GET') {
@@ -103,14 +95,37 @@ try {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $result = $handler->addSensor(
                     $input['sensor_type'],
-                    $input['transport_id'] ?? null
+                    $input['transport_id'] ?? null,
+                    $input['warehouse_id'] ?? null
                 );
                 
                 if ($result) {
                     echo json_encode(['success' => true, 'message' => 'Sensor added successfully', 'id' => $result]);
                 } else {
                     http_response_code(409);
-                    echo json_encode(['success' => false, 'message' => 'Sensor of this type is already assigned to this transport']);
+                    echo json_encode(['success' => false, 'message' => 'Invalid assignment or duplicate sensor for the selected asset']);
+                }
+            }
+            break;
+
+        case 'add_combined_sensors':
+            if ($method === 'POST') {
+                $input = json_decode(file_get_contents('php://input'), true);
+                $result = $handler->addCombinedSensors(
+                    $input['transport_id'] ?? null,
+                    $input['warehouse_id'] ?? null
+                );
+                
+                if ($result) {
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Both temperature and humidity sensors added successfully', 
+                        'temp_sensor_id' => $result['temp_sensor_id'],
+                        'humidity_sensor_id' => $result['humidity_sensor_id']
+                    ]);
+                } else {
+                    http_response_code(409);
+                    echo json_encode(['success' => false, 'message' => 'Invalid assignment or sensors already exist for the selected asset']);
                 }
             }
             break;
@@ -121,14 +136,15 @@ try {
                 $result = $handler->updateSensor(
                     $input['sensor_id'],
                     $input['sensor_type'],
-                    $input['transport_id'] ?? null
+                    $input['transport_id'] ?? null,
+                    $input['warehouse_id'] ?? null
                 );
                 
                 if ($result) {
                     echo json_encode(['success' => true, 'message' => 'Sensor updated successfully']);
                 } else {
                     http_response_code(409);
-                    echo json_encode(['success' => false, 'message' => 'Sensor of this type is already assigned to this transport']);
+                    echo json_encode(['success' => false, 'message' => 'Invalid assignment or duplicate sensor for the selected asset']);
                 }
             }
             break;
