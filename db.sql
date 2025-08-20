@@ -26,8 +26,8 @@ CREATE TABLE Farmer_Farm_Assignments (
     end_date DATE,
     duration INT,
     role VARCHAR(100),
-    FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id),
-    FOREIGN KEY (farm_id) REFERENCES Farms(farm_id)
+    CONSTRAINT fk_assignment_farmer FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id),
+    CONSTRAINT fk_assignment_farm FOREIGN KEY (farm_id) REFERENCES Farms(farm_id)
 );
 
 -- Crops and Harvests
@@ -44,7 +44,7 @@ CREATE TABLE Harvests (
     harvest_type VARCHAR(100),
     harvest_quantity DECIMAL(10,2),
     harvest_shelf_life VARCHAR(100),
-    FOREIGN KEY (farm_id) REFERENCES Farms(farm_id)
+    CONSTRAINT fk_harvest_farm FOREIGN KEY (farm_id) REFERENCES Farms(farm_id)
 );
 
 CREATE TABLE Crop_Sowing (
@@ -53,8 +53,8 @@ CREATE TABLE Crop_Sowing (
     plant_date DATE,
     harvest_date DATE,
     PRIMARY KEY (harvest_id, crop_id),
-    FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
-    FOREIGN KEY (crop_id) REFERENCES Crops(crop_id) ON DELETE CASCADE
+    CONSTRAINT fk_sowing_harvest FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
+    CONSTRAINT fk_sowing_crop FOREIGN KEY (crop_id) REFERENCES Crops(crop_id) ON DELETE CASCADE
 );
 
 -- Inventory and Utilization
@@ -72,9 +72,9 @@ CREATE TABLE Material_Utilization (
     material_name VARCHAR(255),
     farmer_id INT,
     date DATE,
-    FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
-    FOREIGN KEY (inventory_id) REFERENCES Farmer_Required_Inventory(inventory_id) ON DELETE CASCADE,
-    FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id)
+    CONSTRAINT fk_utilization_harvest FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
+    CONSTRAINT fk_utilization_inventory FOREIGN KEY (inventory_id) REFERENCES Farmer_Required_Inventory(inventory_id) ON DELETE CASCADE,
+    CONSTRAINT fk_utilization_farmer FOREIGN KEY (farmer_id) REFERENCES Farmers(farmer_id)
 );
 
 -- Warehouses and Batches
@@ -93,8 +93,8 @@ CREATE TABLE Harvest_Batches (
     quantity DECIMAL(10,2),
     status VARCHAR(50),
     storage_date DATE,
-    FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE 
+    CONSTRAINT fk_batch_harvest FOREIGN KEY (harvest_id) REFERENCES Harvests(harvest_id) ON DELETE CASCADE,
+    CONSTRAINT fk_batch_warehouse FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
 );
 
 -- Factories and Products
@@ -112,7 +112,7 @@ CREATE TABLE Factories (
     factory_name VARCHAR(255) NOT NULL,
     factory_region VARCHAR(100),
     harvest_received_quantity DECIMAL(10,2),
-    FOREIGN KEY (owner_id) REFERENCES Owners(owner_id) ON DELETE CASCADE
+    CONSTRAINT fk_factory_owner FOREIGN KEY (owner_id) REFERENCES Owners(owner_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Packaged_Product_Batches (
@@ -125,9 +125,9 @@ CREATE TABLE Packaged_Product_Batches (
   quantity DECIMAL(10,2),
   warehouse_id INT,
   production_quantity DECIMAL(10,2),
-  FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE RESTRICT,
-  FOREIGN KEY (factory_id) REFERENCES Factories(factory_id) ON DELETE CASCADE,
-  FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
+  CONSTRAINT fk_ppb_harvest_batch FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_ppb_factory FOREIGN KEY (factory_id) REFERENCES Factories(factory_id) ON DELETE CASCADE,
+  CONSTRAINT fk_ppb_warehouse FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Package_Products (
@@ -136,7 +136,7 @@ CREATE TABLE Package_Products (
     product_name VARCHAR(255),
     storage_requirements VARCHAR(100),
     packaging_details VARCHAR(100),
-    FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
+    CONSTRAINT fk_package_product_batch FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
 -- Transport and Shipments
@@ -155,7 +155,7 @@ CREATE TABLE Transports (
     vehicle_capacity DECIMAL(10,2),
     current_capacity DECIMAL(10,2),
     vehicle_status ENUM('available', 'in-use', 'needs repair', 'under maintenance') DEFAULT 'available',
-    FOREIGN KEY (driver_id) REFERENCES Drivers(driver_id) ON DELETE CASCADE
+    CONSTRAINT fk_transport_driver FOREIGN KEY (driver_id) REFERENCES Drivers(driver_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Shipments (
@@ -167,9 +167,9 @@ CREATE TABLE Shipments (
     shipment_destination VARCHAR(255),
     status VARCHAR(50),
     transportation_cost DECIMAL(10,2) DEFAULT 0.00,
-    FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE,
-    FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE CASCADE,
-    FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
+    CONSTRAINT fk_shipment_transport FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shipment_batch FOREIGN KEY (harvest_batch_id) REFERENCES Harvest_Batches(harvest_batch_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shipment_packaged FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Routes (
@@ -199,12 +199,9 @@ CREATE TABLE Shipment_Progress (
   estimated_arrival_time DATETIME,
   INDEX idx_sp_shipment (shipment_id),
   INDEX idx_sp_route (route_id),
-  CONSTRAINT fk_sp_shipment
-    FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE,
-  CONSTRAINT fk_sp_route
-    FOREIGN KEY (route_id) REFERENCES Routes(route_id) ON DELETE CASCADE
+  CONSTRAINT fk_sp_shipment FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE,
+  CONSTRAINT fk_sp_route FOREIGN KEY (route_id) REFERENCES Routes(route_id) ON DELETE CASCADE
 );
-
 
 -- Shipping Documents
 CREATE TABLE Shipping_Documents (
@@ -217,7 +214,7 @@ CREATE TABLE Shipping_Documents (
     file_path VARCHAR(255),
     approval_status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
     notes TEXT,
-    FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE
+    CONSTRAINT fk_document_shipment FOREIGN KEY (shipment_id) REFERENCES Shipments(shipment_id) ON DELETE CASCADE
 );
 
 -- Sensors
@@ -226,8 +223,8 @@ CREATE TABLE Sensors (
     sensor_type VARCHAR(100),
     warehouse_id INT,
     transport_id INT,
-    FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE,
-    FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE
+    CONSTRAINT fk_sensor_warehouse FOREIGN KEY (warehouse_id) REFERENCES Warehouses(warehouse_id) ON DELETE CASCADE,
+    CONSTRAINT fk_sensor_transport FOREIGN KEY (transport_id) REFERENCES Transports(transport_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Sensor_Data (
@@ -238,7 +235,7 @@ CREATE TABLE Sensor_Data (
     humidity DECIMAL(5,2),
     travel_duration INT,
     coordinates VARCHAR(255),
-    FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE
+    CONSTRAINT fk_sensor_data_sensor FOREIGN KEY (sensor_id) REFERENCES Sensors(sensor_id) ON DELETE CASCADE
 );
 
 -- Deliveries
@@ -254,7 +251,6 @@ CREATE TABLE Deliveries (
     delivery_status ENUM('on time','late') NOT NULL DEFAULT 'on time',
     delivery_success ENUM('successful','unsuccessful') NOT NULL DEFAULT 'successful'
 );
-
 
 -- Orders
 CREATE TABLE Orders (
@@ -273,11 +269,12 @@ CREATE TABLE Orderlines (
     unit_price DECIMAL(10,2),
     discount_percentage DECIMAL(5,2),
     total_price DECIMAL(10,2),
-    FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
-    FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE,
-    FOREIGN KEY (packaged_product_id) REFERENCES Package_Products(packaged_product_id) ON DELETE CASCADE,
-    FOREIGN KEY (delivery_id) REFERENCES Deliveries(delivery_id) ON DELETE CASCADE
+    CONSTRAINT fk_orderline_order FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
+    CONSTRAINT fk_orderline_batch FOREIGN KEY (packaged_product_batch_id) REFERENCES Packaged_Product_Batches(packaged_product_batch_id) ON DELETE CASCADE,
+    CONSTRAINT fk_orderline_product FOREIGN KEY (packaged_product_id) REFERENCES Package_Products(packaged_product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_orderline_delivery FOREIGN KEY (delivery_id) REFERENCES Deliveries(delivery_id) ON DELETE CASCADE
 );
+
 
 -- Sample data
 INSERT INTO Farmers (first_name, last_name, phone_number, email) VALUES
