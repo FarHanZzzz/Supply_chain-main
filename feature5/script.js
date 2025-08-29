@@ -6,6 +6,7 @@ let alerts = [];
 let transports = [];
 let chart = null;
 
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing...');
@@ -21,6 +22,25 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeChart();
     console.log('Initialization complete');
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const tip = document.getElementById('tipBox');
+  if (tip) {
+    setTimeout(() => {
+      // Prefer Bootstrap API if available
+      if (window.bootstrap?.Alert) {
+        bootstrap.Alert.getOrCreateInstance(tip).close();
+      } else {
+        // Fallback: fade out then remove
+        tip.classList.add('fade');
+        tip.addEventListener('transitionend', () => tip.remove(), { once: true });
+        tip.classList.remove('show');
+        setTimeout(() => tip.remove(), 400); // safety remove
+      }
+    }, 5000); // auto-close after 5s
+  }
+});
+
 
 function setupTabs() {
     console.log('Setting up tabs...');
@@ -866,30 +886,18 @@ function refreshAlerts() {
 // ==================== UTILITY FUNCTIONS ====================
 
 function loadStats() {
-    console.log('loadStats called');
-    // Calculate stats from loaded data
-    const totalSensors = sensors.length;
-    const totalSensorData = sensorData.length;
-    
-    // Count temperature and humidity alerts
-    const tempAlerts = sensorData.filter(item => {
-        const temp = parseFloat(item.temperature);
-        return !isNaN(temp) && (temp > 30 || temp < 5);
-    }).length;
-    
-    const humidityAlerts = sensorData.filter(item => {
-        const humidity = parseFloat(item.humidity);
-        return !isNaN(humidity) && (humidity > 80 || humidity < 30);
-    }).length;
-    
-    console.log('Stats calculated:', { totalSensors, totalSensorData, tempAlerts, humidityAlerts });
-    
-    // Update UI
-    document.getElementById('totalSensors').textContent = totalSensors;
-    document.getElementById('totalSensorData').textContent = totalSensorData;
-    document.getElementById('tempAlerts').textContent = tempAlerts;
-    document.getElementById('humidityAlerts').textContent = humidityAlerts;
+  fetch('api.php?action=get_stats')
+    .then(r => r.json())
+    .then(res => {
+      if (res.success && res.data) {
+        updateStats(res.data);
+      } else {
+        console.error('Failed to load stats:', res.message);
+      }
+    })
+    .catch(err => console.error('Stats fetch error:', err));
 }
+
 
 function updateStats(stats) {
     document.getElementById('totalSensors').textContent = stats.total_sensors || 0;
