@@ -9,8 +9,12 @@ class FraaasDashboard {
         this.pageTitle = document.getElementById('pageTitle');
         this.notificationBadge = document.getElementById('notificationBadge');
         this.topBar = document.getElementById('topBar');
-
         this.initializeEventListeners();
+        // remove widgets but keep the dashboard container and nav
+        this.clearDashboardWidgets();
+        this.initializeEventListeners();
+
+        
         this.initializeCharts();
         this.showDashboard();
         this.updateNotificationCount(3);
@@ -130,6 +134,34 @@ class FraaasDashboard {
         this.iframeWrapper.style.display = 'none';
         this.featureFrame.style.display = 'none';
     }
+    clearDashboardWidgets() {
+    const container = document.getElementById('dashboardHome');
+    if (!container) return;
+
+    // Selector list of things to remove
+    const selectors = [
+        '.stat-card',
+        '.chart-card',
+        '.activity-feed',
+        '.alert',
+        'canvas',
+        '.row.g-4',
+        '.row.g-4.mb-4'
+    ];
+
+    selectors.forEach(sel => {
+        container.querySelectorAll(sel).forEach(node => node.remove());
+    });
+
+    // Remove leftover empty rows/columns
+    container.querySelectorAll('.row').forEach(row => {
+        // if row has no visible children after removals, remove it
+        if (!row.querySelector('*')) row.remove();
+    });
+
+    // Optionally keep the section empty but intact (no placeholder)
+    // container.innerHTML = ''; // <-- uncomment to clear everything inside dashboardHome
+}
 
     updateNotificationCount(count) {
         if (this.notificationBadge) {
