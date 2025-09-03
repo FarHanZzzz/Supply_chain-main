@@ -11,8 +11,8 @@ class FraaasDashboard {
         this.topBar = document.getElementById('topBar');
         this.initializeEventListeners();
         // remove widgets but keep the dashboard container and nav
-        this.clearDashboardWidgets();
-        this.initializeEventListeners();
+        // this.clearDashboardWidgets();
+        // this.initializeEventListeners();
 
         
         this.initializeCharts();
